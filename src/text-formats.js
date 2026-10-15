@@ -74,7 +74,7 @@ function Edit({ isActive, value, onChange, contentRef }) {
 
 	return <>
 		<RichTextToolbarButton icon="editor-textcolor" title={__('Text animation', 'animations-for-blocks')} onClick={show} isActive={isActive} />
-		{open && <Popover anchor={anchor} placement="bottom" onClose={() => setOpen(false)}>
+		{open && <Popover anchor={anchor} placement="bottom" shift resize={false} onClose={() => setOpen(false)}>
 			<div style={{ padding: 16, minWidth: 280, maxHeight: '65vh', overflow: 'auto' }}>
 				{error && <Notice status="error" isDismissible={false}>{error}</Notice>}
 				<SelectControl label={__('Effect', 'animations-for-blocks')} value={config.effect} options={[{ label: __('Typing', 'animations-for-blocks'), value: 'typing' }, { label: __('Reveal words', 'animations-for-blocks'), value: 'words' }, { label: __('Counter', 'animations-for-blocks'), value: 'count' }]} onChange={effect => update('effect', effect)} />
