@@ -1,0 +1,48 @@
+:root {
+	--wsd-anfb-range-control-gutter: 4px;
+}
+
+.wsd-anfb__range-control {
+	margin-bottom: 8px !important;
+
+	& > .components-base-control__field {
+
+		& > label {
+			display: flex;
+			justify-content: space-between;
+			gap: 4px;
+			margin-bottom: -6px;
+
+			& > [data-type=value] {
+				text-transform: initial;
+				font-weight: 400;
+				color: #757575;
+			}
+		}
+	}
+
+	.components-range-control__wrapper {
+		margin-left: var(--wsd-anfb-range-control-gutter);
+		max-width: calc(100% - var(--wsd-anfb-range-control-gutter) * 2);
+
+		& > .components-range-control__slider + span,
+		& > .components-range-control__track {
+			margin-inline: calc((var(--wsd-anfb-range-control-gutter) - 1px) * -1);
+		}
+	}
+
+	.components-range-control__marks {
+
+		& > .components-range-control__mark {
+
+			&:first-child,
+			&:has(+ :last-child) {
+				display: none;
+			}
+		}
+	}
+
+	.components-base-control__help {
+		margin-top: 16px;
+	}
+}

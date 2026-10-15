@@ -43,7 +43,6 @@ vendor/
 
 # Build and coverage outputs
 dist/
-build/
 coverage/
 .nyc_output/
 
@@ -108,3 +107,5 @@ pnpm-debug.log*
 composer.phar
 
 # END wp-git-initialize
+
+.pnpm-store/

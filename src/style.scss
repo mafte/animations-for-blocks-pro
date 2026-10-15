@@ -1,0 +1,154 @@
+:root {
+	--anfb-wp-panel-border: #e0e0e0;
+}
+
+/** Block editor (non-iframe only). */
+.edit-post-visual-editor {
+
+	/** Animating block. */
+	&:has(.wsd-anfb-is-animating) {
+
+		/** Hide block toolbar during animation. */
+		.block-editor-block-contextual-toolbar:not(.is-fixed) {
+			display: none;
+		}
+
+		/** Hide block appenders during animation. */
+		.block-list-appender {
+			display: none;
+		}
+	}
+}
+
+/** Animations for Blocks Inspector Controls panel. */
+.wsd-anfb {
+
+	&.components-panel {
+		border-top: 1px solid var(--anfb-wp-panel-border);
+
+		&:not(:first-child) {
+			margin-top: -1px;
+		}
+
+		& + .components-panel__body {
+			margin-top: 0;
+		}
+
+		&:last-child {
+			margin-bottom: 1px;
+		}
+
+		& > .components-panel__header {
+			border-bottom: 0;
+		}
+
+		& > .components-panel__body {
+			border-top: 0;
+			padding-top: 0;
+
+			& > .components-v-stack {
+
+				& > .components-base-control {
+					margin-bottom: 0;
+				}
+			}
+		}
+	}
+
+	&__menu-group {
+
+		.components-menu-item__button {
+
+			&[disabled] {
+				pointer-events: none;
+			}
+		}
+	}
+
+	/** "Advanced settings" button. */
+	& &__button {
+
+		&-active {
+			background: #eee;
+		}
+	}
+}
+
+/** Inspector controls in advanced inspector controls area. */
+.block-editor-block-inspector__advanced .wsd-anfb {
+	margin-left: -16px;
+	margin-right: -16px;
+
+	&:has(+ .components-base-control) {
+		border-bottom: 1px solid var(--anfb-wp-panel-border);
+		margin-bottom: 16px;
+	}
+}
+
+/** Help modal. */
+.wsd-anfb__help {
+	max-width: 720px;
+
+	/** Help text container. */
+	& &__content {
+
+		h4 {
+			margin-bottom: 0;
+
+			& + p {
+				margin-top: 0;
+			}
+		}
+	}
+}
+
+/** Settings modal. */
+.wsd-anfb__settings {
+
+	&__content {
+		margin-top: 12px;
+		max-width: 320px;
+
+		& > :last-child {
+			margin-bottom: 0;
+		}
+	}
+
+	&__reset-button {
+		align-self: flex-start;
+	}
+
+	.wsd-anfb__animation-control + &__reset-button {
+		margin-top: -24px;
+	}
+}
+
+.wsd-anfb__notice {
+
+	/** Prefers reduced motion enabled notice. */
+	&__reduced-motion {
+		display: none;
+		padding: 4px 8px;
+		margin-bottom: 1rem;
+
+		.components-notice__content {
+			margin: 0;
+
+			& > strong {
+				font-size: 12px;
+			}
+
+			& > p {
+				font-size: 11px;
+				line-height: 14px;
+				margin-bottom: 0;
+			}
+		}
+
+		@media (prefers-reduced-motion: reduce) {
+			display: flex;
+		}
+	}
+}
+
+@import './text';

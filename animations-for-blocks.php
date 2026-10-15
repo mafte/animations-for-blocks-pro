@@ -3,7 +3,8 @@
  * Plugin Name: Animations for Blocks
  * Plugin URI: https://wordpress.org/plugins/animations-for-blocks
  * Description: Allows to add animations to Gutenberg blocks on scroll.
- * Version: 1.2.7
+ * Version: 1.3.0
+ * Requires at least: 6.6
  * Requires PHP: 8.1
  * Author: skadev
  * Author URI: https://profiles.wordpress.org/skadev/
@@ -22,6 +23,13 @@ define('WSD_ANFB_VER', $anfb_plugin['Version']);
 define('WSD_ANFB_FILE', __FILE__);
 define('WSD_ANFB_DIR', dirname(__FILE__));
 define('WSD_ANFB_AOS_HANDLE', 'animate-on-scroll');
+
+require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/content.php';
+require_once __DIR__ . '/includes/text.php';
+if (defined('WP_CLI') && WP_CLI) {
+	require_once __DIR__ . '/includes/cli.php';
+}
 
 
 /**
@@ -220,6 +228,9 @@ function register_assets() {
 		($options['ignoreReducedMotionPreference'] ?? false) ? 'screen' : 'screen and (prefers-reduced-motion: no-preference)'
 	);
 
+	// Keep content visible until the animation engine has initialized successfully.
+	wp_add_inline_style(WSD_ANFB_AOS_HANDLE, 'html:not(.anfb-aos-ready) [data-aos] { opacity: 1 !important; visibility: visible !important; transform: none !important; transition: none !important; pointer-events: auto !important; }');
+
 	wp_register_script(
 		WSD_ANFB_AOS_HANDLE,
 		plugins_url('build/aos.js', WSD_ANFB_FILE),
@@ -367,7 +378,7 @@ function front_end_assets() {
 		enqueue_front_end_lenis_assets();
 	}
 
-	if($options['lazyloadAssets']) {
+	if($options['lazyloadAssets'] ?? true) {
 		return;
 	}
 
@@ -419,7 +430,7 @@ function get_animation_attributes($args = []) {
 	}
 
 	/** Animation. */
-	$attributes['data-aos'] = $args['animation'] === $args['variation']
+	$attributes['data-aos'] = ($args['animation'] === $args['variation'] || $args['variation'] === '')
 							? $args['animation']
 							: $args['animation'] . '-' . $args['variation'];
 
@@ -474,9 +485,9 @@ function add_animation_attributes($html, $args) {
 	$tags = new WP_HTML_Tag_Processor($html);
 	if($tags->next_tag()) {
 
-		/** Already has animation attributes. */
-		if($tags->get_attribute('data-aos')) {
-			return $html;
+		/** The block configuration is authoritative when rendering a configured animation. */
+		foreach (['data-aos', 'data-aos-delay', 'data-aos-duration', 'data-aos-easing', 'data-aos-once', 'data-aos-mirror', 'data-aos-offset', 'data-aos-anchor-placement'] as $key) {
+			$tags->remove_attribute($key);
 		}
 
 		/** Add animation attributes. */
@@ -700,7 +711,7 @@ function animate_block($block_content, $parsed_block, $block) {
 				enqueue_front_end_lenis_assets();
 			}
 
-			if($options['lazyloadAssets']) {
+			if($options['lazyloadAssets'] ?? true) {
 				enqueue_front_end_aos_assets();
 			}
 

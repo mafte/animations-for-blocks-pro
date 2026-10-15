@@ -1,0 +1,113 @@
+:root {
+	--wsd-anfb-button-group-label-spacing: 4px;
+	--wsd-anfb-button-group-pills-spacing: 4px;
+	--wsd-anfb-button-group-consecutive-spacing: 8px;
+}
+
+.wsd-anfb__button-group {
+
+	& > .components-base-control__field {
+		margin-bottom: 0;
+
+		& > .components-base-control__label {
+			cursor: initial;
+			display: block;
+			margin-bottom: var(--wsd-anfb-button-group-label-spacing);
+		}
+	}
+
+	& > .components-base-control__help {
+		margin-top: 4px;
+		margin-bottom: 0;
+	}
+
+	&--fluid {
+
+		& > .components-base-control__field {
+
+			& > .wsd-anfb__button-group__group {
+				display: flex;
+				flex-direction: row;
+
+				& > .components-button {
+					flex-grow: 1;
+					justify-content: center;
+				}
+			}
+		}
+	}
+
+	&--pills {
+
+		& > .components-base-control__field {
+
+			& > .wsd-anfb__button-group__group {
+				margin-left: calc(var(--wsd-anfb-button-group-pills-spacing) * -1);
+				margin-bottom: calc(var(--wsd-anfb-button-group-pills-spacing) * -1);
+
+				& > .wsd-anfb__button-group__group {
+					margin-left: 0;
+				}
+
+				& > .components-button {
+					height: auto;
+					border-radius: 999rem;
+					margin-left: var(--wsd-anfb-button-group-pills-spacing);
+					margin-bottom: var(--wsd-anfb-button-group-pills-spacing);
+				}
+			}
+		}
+	}
+
+	& + & {
+		margin-top: var(--wsd-anfb-button-group-consecutive-spacing);
+	}
+
+	&--hide-label {
+
+		& > .components-base-control__field {
+
+			& > .components-base-control__label {
+				clip: rect(0, 0, 0, 0);
+				white-space: nowrap;
+				border-width: 0;
+				width: 1px;
+				height: 1px;
+				margin: -1px;
+				padding: 0;
+				position: absolute;
+				overflow: hidden;
+			}
+		}
+	}
+
+	&--xs {
+
+		& > .components-base-control__field {
+
+			& > .wsd-anfb__button-group__group {
+
+				& > .components-button {
+					line-height: 20px;
+					font-weight: 499;
+					padding: 0 6px;
+				}
+			}
+		}
+	}
+}
+
+.components-v-stack {
+
+	& > .wsd-anfb__button-group {
+
+		&,
+		&:last-child {
+			margin-bottom: 0;
+		}
+	}
+
+	& > .wsd-anfb__button-group + .wsd-anfb__button-group {
+		--wsd-anfb-button-group-consecutive-spacing: 0;
+	}
+}

@@ -5,7 +5,7 @@ Tags: gutenberg, block, animation, animate, slide
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.2.7
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -71,7 +71,21 @@ When none of the animated elements show up on your site it's possibly due to a J
 2. Adding an animation
 3. Animation controls
 
+== Codex and text animations ==
+
+Adds typing, word reveal and counters to selected text in Paragraph, Heading and GenerateBlocks V2 Text. Select text and use "Text animation" in the formatting toolbar. Counter values are explicit numbers; each selection has its own settings.
+
+WP-CLI commands: `wp anfb inspect`, `apply`, `clear`, `restore`. Run with an explicit `--user` who can edit the post. Read `docs/codex.md` for the versioned JSON format, dry-run workflow and private backups. Read `docs/testing.md` for build and isolated tests.
+
 == Changelog ==
+
+= 1.3.0 =
+* Restore maintainable upstream sources and build configuration.
+* Add selected-text typing, word reveal and counters with reduced-motion support.
+* Add WP-CLI inspection, validated batch changes, dry-run, private backups and restoration.
+* Synchronize animation configuration and saved root HTML on CLI edits.
+* Preserve GenerateBlocks V2 styles and existing animation inheritance.
+
 
 = 1.2.7 =
 * Tweaked UI for WordPress 7.1.
