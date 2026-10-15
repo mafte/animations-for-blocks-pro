@@ -73,7 +73,7 @@ When none of the animated elements show up on your site it's possibly due to a J
 
 == Codex and text animations ==
 
-Adds typing, word reveal and counters to selected text in Paragraph, Heading and GenerateBlocks V2 Text. Select text and use "Text animation" in the formatting toolbar. Counter values are explicit numbers; each selection has its own settings.
+Adds typing, word reveal and counters to selected text in Paragraph, Heading and GenerateBlocks V2 Text. Select text and use "Text animation" in the formatting toolbar. Counters read the value and formatting from the selected text; only duration needs adjusting. The preview uses the current selection and settings. Advanced counter parameters remain available through WP-CLI.
 
 WP-CLI commands: `wp anfb inspect`, `apply`, `clear`, `restore`. Run with an explicit `--user` who can edit the post. Read `docs/codex.md` for the versioned JSON format, dry-run workflow and private backups. Read `docs/testing.md` for build and isolated tests.
 

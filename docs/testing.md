@@ -29,3 +29,9 @@ La prueba de navegador guarda efectos, vuelve a abrir el editor y comprueba escr
 Comprobado con WordPress 6.6 y 7.1, GenerateBlocks 2.3.0, GeneratePress y PHP 8.4.6 en dos instalaciones SQLite aisladas. Pasan la compilación, las comprobaciones de runtime, 36 comprobaciones PHP de contenido, la integración CLI y la integración de navegador. Esta última incluye la barra de formatos, guardado/reapertura, animaciones en marcha, escritorio/móvil, movimiento reducido, ausencia de JavaScript y fallo de inicialización AOS.
 
 PHP 8.1 se conserva como mínimo de código, pero no se ejecutó una matriz de runtimes PHP ni de navegadores: el navegador probado fue Chrome. Las actualizaciones del plugin original requieren integrar y volver a probar estas modificaciones; una actualización que sustituya esta carpeta puede perder la ampliación.
+
+## Contador simplificado en Akumbele
+
+Prueba solicitada en `http://akumbele.local/prueba-contador-animations/` (página 1335), mediante el helper local-wpcli y el navegador integrado de Codex. Se verificaron valores intermedios y restauración del texto final para `98%`, `1.250,50 €` y `20+`, incluyendo GenerateBlocks V2 Text. Las pruebas de runtime cubren la inferencia del valor y formato, números negativos y selecciones inválidas.
+
+El iframe `blob:` de Gutenberg quedó vacío en el navegador integrado; no se pudo completar allí la comprobación visual del nuevo panel. No se ejecutaron las fixtures de sitio desechable contra Akumbele. Los archivos anteriores del editor se conservaron en `/private/tmp/anfb-akumbele-counter-backup` y el contenido inicial de la página en `/private/tmp/anfb-akumbele-page-before.json`.

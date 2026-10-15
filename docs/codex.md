@@ -72,7 +72,9 @@ Operaciones: `entry`, `entry-remove`, `text`, `text-remove`, `clear`. Solo `entr
 
 Efectos de texto: `typing`, `words`, `count`. Duración predeterminada 1200 ms; retraso 0; duración 1–60000 y retraso 0–60000 ms. `typing` admite `cursor` booleano, desactivado por defecto. Todos se ejecutan una vez al entrar en pantalla y esperan la entrada AOS del bloque y sus ancestros.
 
-El contador exige `end` numérico explícito; nunca pasar `"1.250"` como número. Inicio predeterminado 0, decimales 0 (máximo 10), separador decimal `.`, separador de miles `,`, prefijo/sufijo vacíos. Se permite separador de miles vacío, negativos y conteo descendente. El texto seleccionado es el contenido final que se conserva, incluso si su formato difiere de la configuración numérica: el agente debe elegir valores coherentes.
+En el editor, el contador solo muestra la duración: toma automáticamente el valor final, decimales, separadores y símbolos del texto seleccionado. Por ejemplo: `98%`, `1.250,50 €` o `20+`. Una selección con varios números se rechaza; un único separador seguido por tres cifras, como `1.250`, se interpreta como miles (salvo `0.125`, que se interpreta como decimal). La vista previa usa la selección y los ajustes actuales antes de aplicar. Los parámetros avanzados de configuraciones existentes y WP-CLI siguen siendo compatibles.
+
+En WP-CLI, el contador exige `end` numérico explícito; nunca pasar `"1.250"` como número. Inicio predeterminado 0, decimales 0 (máximo 10), separador decimal `.`, separador de miles `,`, prefijo/sufijo vacíos. Se permite separador de miles vacío, negativos y conteo descendente. El texto seleccionado es el contenido final que se conserva, incluso si su formato difiere de la configuración numérica: el agente debe elegir valores coherentes.
 
 Texto compatible: párrafo y título de Gutenberg y `generateblocks/text`. La selección CLI debe caber en un nodo de texto; `inspect.textNodes` ayuda a identificarlo. Las selecciones que atraviesen negritas o enlaces se aplican desde la barra de formatos del editor. No superponer efectos: reemplazar el fragmento completo o quitar su formato primero.
 
