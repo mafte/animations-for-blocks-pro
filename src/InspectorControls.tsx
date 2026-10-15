@@ -51,6 +51,7 @@ import {
 } from '@wordpress/icons'
 
 import AnimationControl from './animation-control'
+import SequenceControls from './sequence-controls'
 import HelpModal from './HelpModal'
 import PluginSettingsModal from './PluginSettingsModal'
 import InspectorControlsLocation from './InspectorControlsLocation'
@@ -300,6 +301,7 @@ const InspectorControls: React.FC<InspectorControlsProps> = ({
 						onChange={nextValue => setAttributes({animationsForBlocks: nextValue})}
 					/>
 				</PanelBody>
+				<SequenceControls clientId={clientId} attributes={attributes} setAttributes={setAttributes} />
 			</Panel>
 			{showHelp && <HelpModal onRequestClose={() => setShowHelp(false)} />}
 			{showPluginSettings && <PluginSettingsModal onRequestClose={() => setShowPluginSettings(false)} />}

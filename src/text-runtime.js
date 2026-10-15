@@ -19,7 +19,7 @@ export async function animateFragment(element, { preview = false } = {}) {
 	if (!win || win.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 	let config
 	try { config = JSON.parse(element.dataset.anfb) } catch { return }
-	if (!['typing', 'words', 'count'].includes(config.effect)) return
+	if (!['typing', 'words', 'words-up', 'count'].includes(config.effect)) return
 	const duration = Number(config.duration ?? 1200)
 	const delay = Number(config.delay ?? 0)
 	if (!Number.isFinite(duration) || duration < 1 || duration > 60000 || !Number.isFinite(delay) || delay < 0 || delay > 60000) return
@@ -39,7 +39,43 @@ export async function animateFragment(element, { preview = false } = {}) {
 	}
 	media.addEventListener?.('change', finish, { once: true })
 	element.addEventListener('focusin', finish, { once: true })
+	let visual
+	const tokens = []
+	const prepare = () => {
+		const accessible = doc.createElement('span')
+		accessible.className = 'anfb-text-source'
+		started = true
+		accessible.append(...original)
+		visual = doc.createElement('span')
+		visual.setAttribute('aria-hidden', 'true')
+		visual.className = 'anfb-text-visual'
+		visual.innerHTML = accessible.innerHTML
+		visual.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'))
+		visual.querySelectorAll('a,button,input,select,textarea,[tabindex]').forEach(node => node.setAttribute('tabindex', '-1'))
+
+		if (config.effect !== 'count') {
+			const walker = doc.createTreeWalker(visual, win.NodeFilter.SHOW_TEXT)
+			const nodes = []
+			while (walker.nextNode()) nodes.push(walker.currentNode)
+			for (const node of nodes) {
+				const fragment = doc.createDocumentFragment()
+				for (const text of segments(node.textContent, ['words', 'words-up'].includes(config.effect) ? 'word' : 'grapheme')) {
+					if (config.effect === 'words-up' && /^\s+$/u.test(text)) { fragment.append(doc.createTextNode(text)); continue }
+					const span = doc.createElement('span')
+					span.textContent = text
+					span.style.opacity = '0'
+					if (config.effect === 'words-up') span.style.display = 'inline-block'
+					fragment.append(span)
+					tokens.push(span)
+				}
+				node.replaceWith(fragment)
+			}
+		}
+		element.replaceChildren(accessible, visual)
+	}
+
 	try {
+		if (config.effect === 'words-up') prepare()
 		if (!preview) {
 			const ancestors = []
 			for (let node = element; node; node = node.parentElement) if (node.hasAttribute('data-aos')) ancestors.push(node)
@@ -50,7 +86,7 @@ export async function animateFragment(element, { preview = false } = {}) {
 					const begin = win.performance.now()
 					cancelWaiting = resolve
 					const check = () => {
-						if (ancestors.every(ready) || win.performance.now() - begin > 60000 || !element.isConnected) resolve()
+						if (ancestors.every(ready) || (!doc.documentElement.classList.contains('anfb-aos-pending') && !doc.documentElement.classList.contains('anfb-aos-ready')) || win.performance.now() - begin > 60000 || !element.isConnected) resolve()
 						else frame = win.requestAnimationFrame(check)
 					}
 					check()
@@ -61,7 +97,7 @@ export async function animateFragment(element, { preview = false } = {}) {
 					const milliseconds = value => value.trim().endsWith('ms') ? parseFloat(value) : parseFloat(value) * 1000
 					const waits = ancestors.map(node => {
 						const style = win.getComputedStyle(node)
-						return Math.max(...style.transitionDuration.split(',').map(milliseconds), 0) + Math.max(...style.transitionDelay.split(',').map(milliseconds), 0)
+						return (config.startWithBlock ? 0 : Math.max(...style.transitionDuration.split(',').map(milliseconds), 0)) + Math.max(...style.transitionDelay.split(',').map(milliseconds), 0)
 					})
 					timeout = win.setTimeout(resolve, Math.min(60000, Math.max(...waits, 0)))
 				})
@@ -69,34 +105,7 @@ export async function animateFragment(element, { preview = false } = {}) {
 		}
 		await new Promise(resolve => { cancelWaiting = resolve; timeout = win.setTimeout(resolve, delay) })
 		if (!element.dataset.anfbPlaying || !element.isConnected || media.matches) return finish()
-		const accessible = doc.createElement('span')
-		accessible.className = 'anfb-text-source'
-		started = true
-		accessible.append(...original)
-		const visual = doc.createElement('span')
-		visual.setAttribute('aria-hidden', 'true')
-		visual.className = 'anfb-text-visual'
-		visual.innerHTML = accessible.innerHTML
-		visual.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'))
-		visual.querySelectorAll('a,button,input,select,textarea,[tabindex]').forEach(node => node.setAttribute('tabindex', '-1'))
-		const tokens = []
-		if (config.effect !== 'count') {
-			const walker = doc.createTreeWalker(visual, win.NodeFilter.SHOW_TEXT)
-			const nodes = []
-			while (walker.nextNode()) nodes.push(walker.currentNode)
-			for (const node of nodes) {
-				const fragment = doc.createDocumentFragment()
-				for (const text of segments(node.textContent, config.effect === 'words' ? 'word' : 'grapheme')) {
-					const span = doc.createElement('span')
-					span.textContent = text
-					span.style.opacity = '0'
-					fragment.append(span)
-					tokens.push(span)
-				}
-				node.replaceWith(fragment)
-			}
-		}
-		element.replaceChildren(accessible, visual)
+		if (!started) prepare()
 		let revealed = 0
 		const start = win.performance.now()
 		const tick = now => {
@@ -104,7 +113,17 @@ export async function animateFragment(element, { preview = false } = {}) {
 				if (!element.isConnected || media.matches) return finish()
 				const progress = Math.min(1, (now - start) / duration)
 				if (config.effect === 'count') visual.textContent = counterText((config.start ?? 0) + (config.end - (config.start ?? 0)) * progress, config)
-				else {
+				else if (config.effect === 'words-up') {
+					const travel = Number(win.matchMedia('(max-width: 767px)').matches ? (config.mobileDistance ?? config.distance ?? 8) : (config.distance ?? 12))
+					const wordDuration = Math.min(400, duration)
+					const interval = (duration - wordDuration) / Math.max(1, tokens.length - 1)
+					tokens.forEach((token, index) => {
+						const local = Math.max(0, Math.min(1, ((now - start) - index * interval) / wordDuration))
+						const eased = 1 - Math.pow(1 - local, 3)
+						token.style.opacity = String(eased)
+						token.style.transform = `translateY(${(1 - eased) * Math.max(0, Math.min(200, travel))}px)`
+					})
+				} else {
 					const visible = Math.ceil(tokens.length * progress)
 					if (config.effect === 'typing' && config.cursor && visible !== revealed) {
 						tokens[revealed - 1]?.classList.remove('anfb-text-cursor')

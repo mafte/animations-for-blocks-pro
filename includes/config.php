@@ -12,10 +12,11 @@ function validate_entry($config) {
 	if (!is_array($config)) {
 		throw new \InvalidArgumentException('Entry config must be an object.');
 	}
-	$allowed = ['animation', 'variation', 'duration', 'delay', 'once', 'mirror', 'easing', 'offset', 'anchorPlacement'];
+	$allowed = animation_schema()['entryOptions'];
 	if (array_diff(array_keys($config), $allowed)) {
 		throw new \InvalidArgumentException('Unknown entry option.');
 	}
+	validate_motion_options($config);
 	$schema = animation_schema();
 	$name = $config['animation'] ?? '';
 	if (!in_array($name, array_merge(array_keys($schema['variations']), ['default', 'inherit', 'none']), true)) {
@@ -48,18 +49,20 @@ function validate_entry($config) {
 }
 
 function validate_text_config($config) {
-	if (!is_array($config) || array_diff(array_keys($config), ['effect', 'duration', 'delay', 'cursor', 'start', 'end', 'decimals', 'decimal', 'thousands', 'prefix', 'suffix'])) {
+	if (!is_array($config) || array_diff(array_keys($config), ['effect', 'duration', 'delay', 'cursor', 'start', 'end', 'decimals', 'decimal', 'thousands', 'prefix', 'suffix', 'distance', 'mobileDistance', 'startWithBlock'])) {
 		throw new \InvalidArgumentException('Unknown text option or invalid config.');
 	}
 	if (!in_array($config['effect'] ?? '', animation_schema()['effects'], true)) {
 		throw new \InvalidArgumentException('Unknown text effect.');
 	}
+	validate_motion_options($config);
 	$config = array_merge(['duration' => 1200, 'delay' => 0], $config);
 	foreach (['duration', 'delay'] as $key) {
 		if (!is_int($config[$key]) || $config[$key] < ($key === 'duration' ? 1 : 0) || $config[$key] > 60000) {
 			throw new \InvalidArgumentException("Invalid text $key.");
 		}
 	}
+	if (isset($config['startWithBlock']) && !is_bool($config['startWithBlock'])) throw new \InvalidArgumentException('startWithBlock must be boolean.');
 	if (isset($config['cursor']) && !is_bool($config['cursor'])) {
 		throw new \InvalidArgumentException('Cursor must be boolean.');
 	}
@@ -91,13 +94,28 @@ function sync_entry_html($html, $config = [], $provider = false) {
 	if (!$tags->next_tag()) {
 		throw new \InvalidArgumentException('Block has no root HTML element.');
 	}
-	foreach (['data-aos', 'data-aos-delay', 'data-aos-duration', 'data-aos-easing', 'data-aos-once', 'data-aos-mirror', 'data-aos-offset', 'data-aos-anchor-placement'] as $key) {
+	foreach (entry_attribute_names() as $key) {
 		$tags->remove_attribute($key);
 	}
-	if (!$provider && !in_array($config['animation'] ?? 'none', ['none', 'default', 'inherit'], true)) {
+	if (!$provider && empty($config['pageIds']) && !in_array($config['animation'] ?? 'none', ['none', 'default', 'inherit'], true)) {
 		foreach (get_animation_attributes($config) as $key => $value) {
 			$tags->set_attribute($key, $value);
 		}
 	}
 	return $tags->get_updated_html();
+}
+
+function entry_attribute_names() {
+	return ['data-aos', 'data-aos-delay', 'data-aos-duration', 'data-aos-easing', 'data-aos-once', 'data-aos-mirror', 'data-aos-offset', 'data-aos-anchor-placement', 'data-anfb-distance', 'data-anfb-distance-mobile'];
+}
+
+function validate_motion_options($config) {
+	foreach (['distance' => 200, 'mobileDistance' => 200, 'order' => 1000] as $key => $max) {
+		if (isset($config[$key]) && (!is_int($config[$key]) || $config[$key] < 0 || $config[$key] > $max)) {
+			throw new \InvalidArgumentException("Invalid $key.");
+		}
+	}
+	if (isset($config['pageIds']) && (!is_array($config['pageIds']) || !array_is_list($config['pageIds']) || array_filter($config['pageIds'], static fn($id) => !is_int($id) || $id < 1))) {
+		throw new \InvalidArgumentException('Page IDs must be a list of positive integers.');
+	}
 }

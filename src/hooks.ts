@@ -16,6 +16,8 @@ import {
 	// @ts-ignore
 } from '@wordpress/block-editor'
 
+import schema from '../includes/animation-schema.json'
+
 import {
 	DEFAULT_ANIMATION,
 } from './PluginSettings'
@@ -55,12 +57,12 @@ export const useAnimationConfig = (clientId: string, animationsForBlocks: Animat
 
 		if(animation === 'inherit') {
 
-			const parentAnimationContainers = select(blockEditorStore).getBlockParentsByBlockName(clientId, 'anfb/animation-container', true) as string[]
+			const parentAnimationContainers = select(blockEditorStore).getBlockParentsByBlockName(clientId, schema.sequenceBlocks, true) as string[]
 
 			const getAnimationProvider = (containers: string[]) => {
 				for(const clientId of containers) {
 					const block = select(blockEditorStore).getBlock(clientId)
-					if(block) {
+					if(block?.attributes?.isAnimationProvider) {
 						return block
 					}
 				}
@@ -95,11 +97,20 @@ export const useAnimationConfig = (clientId: string, animationsForBlocks: Animat
 				return false
 			}
 
-			if(providedAnimation.animation === 'default') {
-				return getDefaultAnimation()
-			}
 
-			return providedAnimation
+			const entries: any[] = []
+			const collect = (children: any[]) => children.forEach(child => {
+				if (child.attributes.isAnimationProvider) return
+				const name = child.attributes.animationsForBlocks?.animation
+				if (name === 'inherit') { entries.push(child); return }
+				if (!name || name === 'none') collect(child.innerBlocks)
+			})
+			collect(block.innerBlocks)
+			entries.sort((a, b) => (a.attributes.animationsForBlocks?.order ?? 0) - (b.attributes.animationsForBlocks?.order ?? 0))
+			const rank = entries.findIndex(entry => entry.clientId === clientId)
+			if (rank < 0) return false
+			const base = providedAnimation.animation === 'default' ? getDefaultAnimation() : providedAnimation
+			return { ...base, delay: Math.min(3000, (base.delay ?? 0) + rank * (block.attributes.animationStagger ?? 0)) }
 		}
 
 		return false

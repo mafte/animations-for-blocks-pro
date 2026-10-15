@@ -41,6 +41,7 @@ function Edit({ isActive, value, onChange, contentRef }) {
 		const duration = Number(config.duration), delay = Number(config.delay ?? 0)
 		if (!Number.isInteger(duration) || duration < 1 || duration > 60000 || !Number.isInteger(delay) || delay < 0 || delay > 60000) throw new Error(__('Use a duration of 1–60000 ms and delay of 0–60000 ms.', 'animations-for-blocks'))
 		let next = { effect: config.effect, duration, delay }
+		if (config.effect === 'words-up') { next.startWithBlock = !!config.startWithBlock; next.distance = Number(config.distance ?? 12); next.mobileDistance = Number(config.mobileDistance ?? 8); if (![next.distance, next.mobileDistance].every(value => Number.isInteger(value) && value >= 0 && value <= 200)) throw new Error(__('Distance must be 0–200 px.', 'animations-for-blocks')) }
 		if (config.effect === 'typing') next.cursor = !!config.cursor
 		if (config.effect === 'count') {
 			try { next = { ...next, ...counterConfig(value.text.slice(start, end)), start: config.start ?? 0 } }
@@ -77,8 +78,10 @@ function Edit({ isActive, value, onChange, contentRef }) {
 		{open && <Popover anchor={anchor} placement="bottom" shift resize={false} onClose={() => setOpen(false)}>
 			<div style={{ padding: 16, minWidth: 280, maxHeight: '65vh', overflow: 'auto' }}>
 				{error && <Notice status="error" isDismissible={false}>{error}</Notice>}
-				<SelectControl label={__('Effect', 'animations-for-blocks')} value={config.effect} options={[{ label: __('Typing', 'animations-for-blocks'), value: 'typing' }, { label: __('Reveal words', 'animations-for-blocks'), value: 'words' }, { label: __('Counter', 'animations-for-blocks'), value: 'count' }]} onChange={effect => update('effect', effect)} />
+				<SelectControl label={__('Effect', 'animations-for-blocks')} value={config.effect} options={[{ label: __('Typing', 'animations-for-blocks'), value: 'typing' }, { label: __('Reveal words', 'animations-for-blocks'), value: 'words' }, { label: __('Smooth words', 'animations-for-blocks'), value: 'words-up' }, { label: __('Counter', 'animations-for-blocks'), value: 'count' }]} onChange={effect => update('effect', effect)} />
 				{(config.effect === 'count' ? ['duration'] : ['duration', 'delay']).map(key => <TextControl key={key} label={key === 'duration' ? __('Duration (ms)', 'animations-for-blocks') : __('Delay (ms)', 'animations-for-blocks')} type="number" value={config[key]} onChange={newValue => update(key, newValue)} />)}
+				{config.effect === 'words-up' && ['distance', 'mobileDistance'].map(key => <TextControl key={key} label={key === 'distance' ? __('Distance (px)', 'animations-for-blocks') : __('Mobile distance (px)', 'animations-for-blocks')} type="number" min={0} max={200} value={config[key] ?? (key === 'distance' ? 12 : 8)} onChange={value => update(key, value)} />)}
+				{config.effect === 'words-up' && <ToggleControl label={__('Start during block entrance', 'animations-for-blocks')} checked={!!config.startWithBlock} onChange={value => update('startWithBlock', value)} />}
 				{config.effect === 'typing' && <ToggleControl label={__('Show cursor', 'animations-for-blocks')} checked={!!config.cursor} onChange={cursor => update('cursor', cursor)} />}
 				{config.effect === 'count' && <p>{__('Counts to the selected number, preserving its format.', 'animations-for-blocks')}</p>}
 				<Button variant="primary" onClick={apply}>{__('Apply', 'animations-for-blocks')}</Button>

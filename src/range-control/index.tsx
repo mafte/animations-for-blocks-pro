@@ -43,6 +43,7 @@ const renderTooltip = (value: number | '' | null = 0) => `${value}${_x('ms', 'Mi
 export interface RangeControlProps {
 	label?: string
 	help?: string
+	min?: number
 	max?: number
 	value: number
 	onChange: (nextValue?: number) => void
@@ -54,6 +55,7 @@ export interface RangeControlProps {
 const RangeControl: React.FC<RangeControlProps> = ({
 	label,
 	help,
+	min = 0,
 	max = 3000,
 	value,
 	onChange,
@@ -68,7 +70,7 @@ const RangeControl: React.FC<RangeControlProps> = ({
 			help={help}
 			value={value}
 			onChange={onChange}
-			min={0}
+			min={min}
 			step={50}
 			max={max}
 			withInputField={false}

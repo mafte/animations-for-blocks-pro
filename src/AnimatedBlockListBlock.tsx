@@ -137,6 +137,7 @@ const AnimatedBlockListBlock: React.FC<AnimatedBlockListBlockProps> = props => {
 				...wrapperProps,
 				...(hasAnimation && {
 					...getAnimationProps(animationConfig, 'edit'),
+					style: { ...wrapperProps.style, ...getAnimationProps(animationConfig, 'edit').style },
 					className: cx(wrapperProps.className, {
 						'aos-init': true,
 						'aos-animate': isAnimating || hasAnimated,

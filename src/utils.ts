@@ -11,7 +11,7 @@ import type {
  */
 export const getAnimationProps = (animationsForBlocks: AnimationsForBlocks = {}, context: 'save' | 'edit' = 'save') => {
 
-	let animationProps: Record<string, string> = {}
+	let animationProps: Record<string, any> = {}
 
 	if(!animationsForBlocks) {
 		return animationProps
@@ -34,7 +34,7 @@ export const getAnimationProps = (animationsForBlocks: AnimationsForBlocks = {},
 	}
 
 	/** Dynamic animation attributes are added server-side only. */
-	if(context === 'save' && DYNAMIC_ANIMATION_NAMES.includes(animation)) {
+	if(context === 'save' && (DYNAMIC_ANIMATION_NAMES.includes(animation) || animationsForBlocks.pageIds?.length)) {
 		return animationProps
 	}
 
@@ -54,6 +54,12 @@ export const getAnimationProps = (animationsForBlocks: AnimationsForBlocks = {},
 	/** Easing. */
 	if(easing && easing !== 'ease') {
 		animationProps['data-aos-easing'] = easing
+	}
+
+	if (animationsForBlocks.distance !== undefined || animationsForBlocks.mobileDistance !== undefined) {
+		animationProps['data-anfb-distance'] = String(animationsForBlocks.distance ?? 100)
+		if (animationsForBlocks.mobileDistance !== undefined) animationProps['data-anfb-distance-mobile'] = String(animationsForBlocks.mobileDistance)
+		if (context === 'edit') animationProps.style = { '--anfb-distance': `${animationsForBlocks.distance ?? 100}px`, '--anfb-distance-mobile': `${animationsForBlocks.mobileDistance ?? animationsForBlocks.distance ?? 100}px` }
 	}
 
 	/** Skip attributes not needed in the editor. */

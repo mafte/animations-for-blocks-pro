@@ -28,3 +28,16 @@
 [data-aos=scale-out-y] {
 	transform: scaleY(var(--aos-scale-out));
 }
+
+[data-anfb-distance] { --anfb-effective-distance: var(--anfb-distance, 100px); }
+@media (max-width: 767px) {
+	[data-anfb-distance] { --anfb-effective-distance: var(--anfb-distance-mobile, var(--anfb-distance, 100px)); }
+}
+@each $direction, $x, $y in (up, 0, 1), (down, 0, -1), (left, 1, 0), (right, -1, 0), (up-left, 1, 1), (up-right, -1, 1), (down-left, 1, -1), (down-right, -1, -1) {
+	html:not(.no-js) [data-anfb-distance][data-aos="fade-#{$direction}"], html:not(.no-js) [data-anfb-distance][data-aos="slide-#{$direction}"] {
+		transform: translate3d(calc(#{$x} * var(--anfb-effective-distance)), calc(#{$y} * var(--anfb-effective-distance)), 0);
+		&.aos-animate { transform: none; }
+	}
+}
+
+html:not(.no-js) [data-aos][data-aos-easing="ease-out-soft"] { transition-timing-function: cubic-bezier(.22,.61,.36,1); }

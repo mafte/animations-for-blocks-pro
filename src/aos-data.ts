@@ -270,6 +270,7 @@ export const EASINGS = [
 		label: __('linear', 'animations-for-blocks'),
 		value: 'linear',
 	},
+	{ label: __('Soft ease out', 'animations-for-blocks'), value: 'ease-out-soft' },
 ]
 
 export const ANCHOR_PLACEMENTS = [

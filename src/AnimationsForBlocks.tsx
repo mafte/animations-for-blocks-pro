@@ -15,6 +15,7 @@ import {
 } from '@wordpress/compose'
 
 import InspectorControls from './InspectorControls'
+import schema from '../includes/animation-schema.json'
 import AnimatedBlockListBlock from './AnimatedBlockListBlock'
 
 import {
@@ -43,6 +44,10 @@ export interface AnimationsForBlocks {
 	easing?: string
 	offset?: number
 	anchorPlacement?: string
+	distance?: number
+	mobileDistance?: number
+	pageIds?: number[]
+	order?: number
 }
 
 /**
@@ -70,6 +75,10 @@ const withFeatureAttributes = function(settings: any) {
 
 	if(featureIsSupported(settings)) {
 		settings.attributes = Object.assign(settings.attributes || {}, featureAttributes)
+		if (schema.sequenceBlocks.includes(settings.name)) {
+			settings.attributes = { ...settings.attributes, isAnimationProvider: { type: 'boolean', default: false }, animationStagger: { type: 'number', default: 0 } }
+			settings.providesContext = { ...settings.providesContext, animationsForBlocksProvider: 'isAnimationProvider', animationsForBlocksAnimation: 'animationsForBlocks', animationsForBlocksStagger: 'animationStagger' }
+		}
 	}
 
 	return settings

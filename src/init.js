@@ -30,16 +30,36 @@ const settings = window.anfbAosSettings || {}
 /**
  * Initialize AOS on the front end.
  */
-const initialize = () => setTimeout(() => {
-	try {
-		const engine = window.AOS || AOS
-		engine.init(settings)
-		window.AOS = engine
-		document.documentElement.classList.add('anfb-aos-ready')
-	} catch (error) {
-		document.documentElement.classList.remove('anfb-aos-ready')
-		console.error('Animations for Blocks: initialization failed.', error)
+const initialize = () => {
+	const root = document.documentElement
+	const reveal = () => root.classList.remove('anfb-aos-ready', 'anfb-aos-pending', 'anfb-aos-running')
+	if (matchMedia('(prefers-reduced-motion: reduce)').matches) return reveal()
+	document.querySelectorAll('[data-anfb-distance]').forEach(element => {
+		for (const [attribute, variable] of [['data-anfb-distance', '--anfb-distance'], ['data-anfb-distance-mobile', '--anfb-distance-mobile']]) {
+			if (!element.hasAttribute(attribute)) continue
+			const value = Number(element.getAttribute(attribute))
+			if (Number.isFinite(value) && value >= 0 && value <= 200) element.style.setProperty(variable, `${value}px`)
+		}
+	})
+	const armed = root.classList.contains('anfb-aos-pending')
+	const start = () => {
+		try {
+			const engine = window.AOS || AOS
+			engine.init(settings)
+			window.AOS = engine
+			root.classList.add('anfb-aos-ready', 'anfb-aos-running')
+			root.classList.remove('anfb-aos-pending')
+		} catch (error) {
+			reveal()
+			console.error('Animations for Blocks: initialization failed.', error)
+		}
 	}
-}, 50)
+	if (!armed) return start()
+	root.classList.add('anfb-aos-ready')
+	root.classList.remove('anfb-aos-pending')
+	// Commit the initial CSS state before AOS applies its visible state.
+	document.querySelectorAll('[data-aos]').forEach(element => getComputedStyle(element).opacity)
+	requestAnimationFrame(() => requestAnimationFrame(start))
+}
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize, { once: true })
 else initialize()

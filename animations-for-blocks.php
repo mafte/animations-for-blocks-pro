@@ -3,7 +3,7 @@
  * Plugin Name: Animations for Blocks
  * Plugin URI: https://wordpress.org/plugins/animations-for-blocks
  * Description: Allows to add animations to Gutenberg blocks on scroll.
- * Version: 1.3.0
+ * Version: 1.4.0
  * Requires at least: 6.6
  * Requires PHP: 8.1
  * Author: skadev
@@ -25,6 +25,7 @@ define('WSD_ANFB_DIR', dirname(__FILE__));
 define('WSD_ANFB_AOS_HANDLE', 'animate-on-scroll');
 
 require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/sequence.php';
 require_once __DIR__ . '/includes/content.php';
 require_once __DIR__ . '/includes/text.php';
 if (defined('WP_CLI') && WP_CLI) {
@@ -127,6 +128,10 @@ function register_settings() {
 									'enum' => ['fade', 'up', 'down', 'left', 'right', 'up-left', 'up-right', 'down-left', 'down-right', 'in', 'in-up', 'in-down', 'in-left', 'in-right', 'out', 'out-up', 'out-down', 'out-left', 'out-right', 'in-x', 'in-y', 'out-x', 'out-y'],
 									'default' => $default_settings['defaultAnimation']['variation'],
 								],
+								'distance' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 200],
+								'mobileDistance' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 200],
+								'order' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 1000],
+								'pageIds' => ['type' => 'array', 'items' => ['type' => 'integer', 'minimum' => 1]],
 								'delay' => [
 									'type' => 'number',
 									'default' => $default_settings['defaultAnimation']['delay'],
@@ -145,7 +150,7 @@ function register_settings() {
 								],
 								'easing' => [
 									'type' => 'string',
-									'enum' => ['ease', 'ease-in', 'ease-out', 'ease-in-out', 'ease-in-back', 'ease-out-back', 'ease-in-out-back', 'ease-in-sine', 'ease-out-sine', 'ease-in-out-sine', 'ease-in-quad', 'ease-out-quad', 'ease-in-out-quad', 'ease-in-cubic', 'ease-out-cubic', 'ease-in-out-cubic', 'ease-in-quart', 'ease-out-quart', 'ease-in-out-quart', 'linear'],
+									'enum' => ['ease', 'ease-in', 'ease-out', 'ease-in-out', 'ease-in-back', 'ease-out-back', 'ease-in-out-back', 'ease-in-sine', 'ease-out-sine', 'ease-in-out-sine', 'ease-in-quad', 'ease-out-quad', 'ease-in-out-quad', 'ease-in-cubic', 'ease-out-cubic', 'ease-in-out-cubic', 'ease-in-quart', 'ease-out-quart', 'ease-in-out-quart', 'linear', 'ease-out-soft'],
 									'default' => $default_settings['defaultAnimation']['easing'],
 								],
 								'offset' => [
@@ -224,12 +229,12 @@ function register_assets() {
 		WSD_ANFB_AOS_HANDLE,
 		plugins_url('build/aos.css', WSD_ANFB_FILE),
 		[],
-		$asset['version'], // 3.0.0-beta.6
+		md5_file(WSD_ANFB_DIR . '/build/aos.css'),
 		($options['ignoreReducedMotionPreference'] ?? false) ? 'screen' : 'screen and (prefers-reduced-motion: no-preference)'
 	);
 
 	// Keep content visible until the animation engine has initialized successfully.
-	wp_add_inline_style(WSD_ANFB_AOS_HANDLE, 'html:not(.anfb-aos-ready) [data-aos] { opacity: 1 !important; visibility: visible !important; transform: none !important; transition: none !important; pointer-events: auto !important; }');
+	wp_add_inline_style(WSD_ANFB_AOS_HANDLE, 'html:not(.anfb-aos-ready):not(.anfb-aos-pending) [data-aos] { opacity: 1 !important; visibility: visible !important; transform: none !important; transition: none !important; pointer-events: auto !important; }');
 
 	wp_register_script(
 		WSD_ANFB_AOS_HANDLE,
@@ -272,6 +277,14 @@ function register_assets() {
 	);
 }
 add_action('init', __NAMESPACE__ . '\\register_assets');
+
+/** A bounded pre-paint preparation; without JS the default remains visible. */
+function prepare_initial_motion() {
+	echo '<style id="anfb-boot-css">@media (prefers-reduced-motion:no-preference){html.anfb-aos-pending [data-aos]{opacity:0!important}}</style>';
+	wp_print_inline_script_tag("if(!matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.classList.add('anfb-aos-pending');setTimeout(function(){var r=document.documentElement;if(!r.classList.contains('anfb-aos-running'))r.classList.remove('anfb-aos-pending','anfb-aos-ready')},1500)}", ['id' => 'anfb-boot']);
+}
+add_action('wp_head', __NAMESPACE__ . '\\prepare_initial_motion', 0);
+
 
 
 /**
@@ -469,6 +482,10 @@ function get_animation_attributes($args = []) {
 		$attributes['data-aos-anchor-placement'] = $args['anchorPlacement'];
 	}
 
+	if (isset($args['distance']) || isset($args['mobileDistance'])) {
+		$attributes['data-anfb-distance'] = (int) ($args['distance'] ?? 100);
+		if (isset($args['mobileDistance'])) $attributes['data-anfb-distance-mobile'] = (int) $args['mobileDistance'];
+	}
 	return apply_filters('anfb_aos_attributes', $attributes, $args);
 }
 
@@ -486,7 +503,7 @@ function add_animation_attributes($html, $args) {
 	if($tags->next_tag()) {
 
 		/** The block configuration is authoritative when rendering a configured animation. */
-		foreach (['data-aos', 'data-aos-delay', 'data-aos-duration', 'data-aos-easing', 'data-aos-once', 'data-aos-mirror', 'data-aos-offset', 'data-aos-anchor-placement'] as $key) {
+		foreach (entry_attribute_names() as $key) {
 			$tags->remove_attribute($key);
 		}
 
@@ -620,6 +637,12 @@ function block_args($args, $block_name) {
 		'type' => 'object',
 	];
 
+	if (in_array($block_name, animation_schema()['sequenceBlocks'], true)) {
+		$args['attributes']['isAnimationProvider'] = ['type' => 'boolean', 'default' => false];
+		$args['attributes']['animationStagger'] = ['type' => 'number', 'default' => 0];
+		$args['provides_context'] = array_merge($args['provides_context'] ?? [], ['animationsForBlocksProvider' => 'isAnimationProvider', 'animationsForBlocksAnimation' => 'animationsForBlocks', 'animationsForBlocksStagger' => 'animationStagger']);
+	}
+
 	if(!isset($args['uses_context']) || !is_array($args['uses_context'])) {
 		$args['uses_context'] = [];
 	}
@@ -689,10 +712,6 @@ add_filter('render_block_context', __NAMESPACE__ . '\\filter_animation_context',
  */
 function animate_block($block_content, $parsed_block, $block) {
 
-	static $cumulative_stagger = 0;
-	if($cumulative_stagger > 0 && is_animation_provider($parsed_block['attrs'])) {
-		$cumulative_stagger = 0;
-	}
 
 	if(
 		is_supported($parsed_block['blockName'])
@@ -724,9 +743,7 @@ function animate_block($block_content, $parsed_block, $block) {
 		if($animation_name === 'inherit') {
 			if($inherited_animation = get_animation_from_context($block->context)) {
 				$animation_config = $inherited_animation;
-				$stagger = (int)$block->context['animationsForBlocksStagger'];
-				$animation_config['delay'] = ($animation_config['delay'] ?? 0) + $cumulative_stagger;
-				$cumulative_stagger += $stagger;
+
 			} else {
 				return $block_content;
 			}
@@ -736,6 +753,9 @@ function animate_block($block_content, $parsed_block, $block) {
 			$animation_config = $parsed_block['attrs']['animationsForBlocks'];
 		}
 
+		if (!empty($animation_config['pageIds']) && !in_array((int) get_queried_object_id(), $animation_config['pageIds'], true)) {
+			return sync_entry_html($block_content);
+		}
 		return add_animation_attributes($block_content, $animation_config);
 	}
 

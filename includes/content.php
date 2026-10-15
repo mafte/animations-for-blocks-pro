@@ -6,10 +6,10 @@ defined('ABSPATH') || exit;
 function block_editable($block, $text = false) {
 	$name = $block['blockName'] ?? '';
 	$type = \WP_Block_Type_Registry::get_instance()->get_registered($name);
-	if ($name === 'core/block' || !$type || !is_supported($name) || ($type->is_dynamic() && !in_array($name, ['core/heading', 'core/image', 'generateblocks/text', 'generateblocks/element'], true)) || !empty($block['attrs']['metadata']['bindings']) || !empty($block['attrs']['dynamicData'])) {
+	if ($name === 'core/block' || !$type || !is_supported($name) || ($type->is_dynamic() && !in_array($name, animation_schema()['renderedEntryBlocks'], true)) || !empty($block['attrs']['metadata']['bindings']) || !empty($block['attrs']['dynamicData'])) {
 		return false;
 	}
-	if (preg_match('/\{\{.*?\}\}/s', $block['innerHTML']) || ($text && !in_array($name, animation_schema()['textBlocks'], true))) {
+	if ($text && (preg_match('/\{\{.*?\}\}/s', $block['innerHTML']) || !in_array($name, animation_schema()['textBlocks'], true))) {
 		return false;
 	}
 	return true;
@@ -155,6 +155,7 @@ function inspect_blocks($blocks, $prefix = [], $blocked = false) {
 			'textEditable' => $editable && block_editable($block, true),
 			'text' => html_entity_decode(wp_strip_all_tags($own_html), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
 			'textNodes' => array_column(text_tokens($own_html), 'text'),
+			'sequence' => ['enabled' => !empty($block['attrs']['isAnimationProvider']), 'interval' => $block['attrs']['animationStagger'] ?? 0],
 			'entry' => $block['attrs']['animationsForBlocks'] ?? null, 'effects' => $effects,
 			'source' => $editable ? null : ['block' => $block['blockName'], 'ref' => $block['attrs']['ref'] ?? null, 'reason' => 'Unregistered, unsupported, dynamic or bound content; edit its source.'],
 			'children' => inspect_blocks($block['innerBlocks'], $path, !$editable),
@@ -194,7 +195,21 @@ function transform_content($content, $operations) {
 			throw new \InvalidArgumentException('Block type does not match inspection.');
 		}
 		$op = $operation['op'] ?? '';
-		if (in_array($op, ['entry', 'entry-remove'], true)) {
+		if ($op === 'sequence') {
+			if (!in_array($block['blockName'], animation_schema()['sequenceBlocks'], true)) throw new \InvalidArgumentException('Unsupported sequence group.');
+			$config = $operation['config'] ?? [];
+			if (array_diff(array_keys($config), ['enabled', 'interval']) || !is_bool($config['enabled'] ?? null) || !is_int($config['interval'] ?? null) || $config['interval'] < 0 || $config['interval'] > 1000 || $config['interval'] % 50 !== 0) throw new \InvalidArgumentException('Sequence requires enabled and interval 0–1000.');
+			$block['attrs']['isAnimationProvider'] = $config['enabled'];
+			$block['attrs']['animationStagger'] = $config['interval'];
+			foreach ($block['innerBlocks'] as &$child) {
+				if ($config['enabled'] && block_editable($child) && empty($child['attrs']['animationsForBlocks']['animation'])) $child['attrs']['animationsForBlocks'] = ['animation' => 'inherit'];
+			}
+			unset($child);
+			foreach ($block['innerContent'] as &$chunk) {
+				if (is_string($chunk) && trim($chunk) !== '') { $chunk = sync_entry_html($chunk, $block['attrs']['animationsForBlocks'] ?? [], $config['enabled']); break; }
+			}
+			unset($chunk);
+		} elseif (in_array($op, ['entry', 'entry-remove'], true)) {
 			$config = $op === 'entry' ? validate_entry($operation['config'] ?? null) : [];
 			if ($op === 'entry' && ($config['animation'] ?? '') !== 'none') {
 				$block['attrs']['animationsForBlocks'] = $config;
@@ -209,7 +224,7 @@ function transform_content($content, $operations) {
 				}
 			}
 			unset($chunk);
-			if ($first) {
+			if ($first && !in_array($block['blockName'], animation_schema()['renderedEntryBlocks'], true)) {
 				throw new \InvalidArgumentException('Block has no editable root.');
 			}
 		} elseif (in_array($op, ['text', 'text-remove'], true)) {
@@ -219,11 +234,11 @@ function transform_content($content, $operations) {
 			$config = $op === 'text' ? validate_text_config($operation['config'] ?? null) : null;
 			$block['innerContent'] = [format_fragment(implode('', $block['innerContent']), $operation['selection'] ?? null, $config)];
 		} elseif ($op === 'clear') {
-			if (!isset($block['attrs']['animationsForBlocks']) && !str_contains($block['innerHTML'], 'data-aos') && !str_contains($block['innerHTML'], 'data-anfb')) {
+			if (!isset($block['attrs']['animationsForBlocks']) && empty($block['attrs']['isAnimationProvider']) && !str_contains($block['innerHTML'], 'data-aos') && !str_contains($block['innerHTML'], 'data-anfb')) {
 				unset($block);
 				continue;
 			}
-			unset($block['attrs']['animationsForBlocks']);
+			unset($block['attrs']['animationsForBlocks'], $block['attrs']['isAnimationProvider'], $block['attrs']['animationStagger']);
 			$first = true;
 			foreach ($block['innerContent'] as &$chunk) {
 				if (is_string($chunk)) {

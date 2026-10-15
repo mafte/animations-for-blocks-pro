@@ -79,4 +79,32 @@ $check(!str_contains(transform_content($provider, [['path' => [0,0], 'block' => 
 $stale = wsd\anfb\add_animation_attributes('<p class="keep" data-aos="zoom-in" data-aos-delay="500">Hi</p>', ['animation' => 'fade', 'variation' => 'up']);
 $check(str_contains($stale, 'data-aos="fade-up"') && !str_contains($stale, 'data-aos-delay'), 'Rendered attributes remained stale.');
 
+$motion = ['animation' => 'fade', 'variation' => 'up', 'distance' => 24, 'mobileDistance' => 16, 'easing' => 'ease-out-soft'];
+$distance = transform_content($original, [array_merge($entry, ['config' => $motion])]);
+$check(str_contains($distance, 'data-anfb-distance="24"') && str_contains($distance, 'data-anfb-distance-mobile="16"'), 'Responsive distance not saved.');
+$conditional = transform_content($distance, [array_merge($entry, ['config' => array_merge($motion, ['pageIds' => [123]])])]);
+$check(!str_contains($conditional, 'data-aos='), 'Conditional entry leaked into saved HTML.');
+$reject(fn() => wsd\anfb\validate_entry(array_merge($motion, ['distance' => -1])), 'Negative distance accepted.');
+$reject(fn() => wsd\anfb\validate_entry(array_merge($motion, ['pageIds' => ['123']])), 'Invalid page IDs accepted.');
+$check(validate_text_config(['effect' => 'words-up', 'distance' => 12, 'startWithBlock' => true])['effect'] === 'words-up', 'Smooth words rejected.');
+$sequence = transform_content($wrapped, [ ['path' => [0], 'block' => 'core/group', 'op' => 'entry', 'config' => $motion], ['path' => [0], 'block' => 'core/group', 'op' => 'sequence', 'config' => ['enabled' => true, 'interval' => 100]] ]);
+$check(!str_contains(parse_blocks($sequence)[0]['innerHTML'], 'data-aos='), 'Provider retained stale saved animation.');
+$check(substr_count(do_blocks($sequence), 'data-aos="fade-up"') === 1, 'Group sequence inheritance failed.');
+$check(do_blocks($provider) === do_blocks($provider), 'Sequence delay leaked between renders.');
+$tree = parse_blocks($provider)[0];
+$tree['innerBlocks'][0]['attrs']['animationsForBlocks']['order'] = 2;
+$tree['innerBlocks'][1]['attrs']['animationsForBlocks']['order'] = 1;
+wsd\anfb\resolve_provider($tree);
+$check($tree['innerBlocks'][0]['attrs']['animationsForBlocks']['delay'] === 100 && $tree['innerBlocks'][1]['attrs']['animationsForBlocks']['delay'] === 0, 'Explicit sequence order ignored.');
+
+$cleared_sequence = parse_blocks(transform_content($sequence, [['path' => [0], 'block' => 'core/group', 'op' => 'clear']]))[0];
+$check(empty($cleared_sequence['attrs']['isAnimationProvider']) && !isset($cleared_sequence['attrs']['animationStagger']), 'Clear retained sequence settings.');
+$nested = parse_blocks($provider)[0];
+$nested['innerBlocks'][0]['innerBlocks'] = [parse_blocks($provider)[0]['innerBlocks'][0]];
+wsd\anfb\resolve_provider($nested);
+$check(empty($nested['innerBlocks'][0]['innerBlocks'][0]['attrs']['animationsForBlocks']), 'Nested inherited child received a second entry.');
+$media = '<!-- wp:generateblocks/media {"uniqueId":"motion-test","tagName":"img"} --><img class="gb-media-motion-test" src="https://example.test/image.jpg" /><!-- /wp:generateblocks/media -->';
+$check(inspect_blocks(parse_blocks($media))[0]['editable'], 'GenerateBlocks Media entry adapter unavailable.');
+$check(str_contains(transform_content($media, [['path' => [0], 'block' => 'generateblocks/media', 'op' => 'entry', 'config' => $motion]]), 'data-anfb-distance="24"'), 'Media animation not serialized.');
+
 echo "Content checks passed: $checks\n";

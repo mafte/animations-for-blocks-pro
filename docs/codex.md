@@ -85,3 +85,21 @@ Texto compatible: párrafo y título de Gutenberg y `generateblocks/text`. La se
 - El HTML guarda el texto final completo. El navegador crea y elimina las estructuras visuales temporales; sin JavaScript o con movimiento reducido se lee el original.
 - `clear` limpia animaciones en la página elegida. Antes de desactivar el plugin, repetir para las otras páginas y fuentes que contengan animaciones: no hay limpieza global automática.
 - No importa configuraciones del plugin Blocks Animation adjunto.
+
+## Entradas suaves y secuencias (1.4)
+
+`entry` admite `distance` y `mobileDistance` (enteros 0–200 px; móvil hasta 767 px), `easing: "ease-out-soft"` (curva `cubic-bezier(.22,.61,.36,1)`), `pageIds` (lista de IDs; vacía significa todas) y `order` (0–1000, solo para hijos con `inherit`). Sin distancia se conserva el recorrido original de AOS. La condición de página se aplica en el servidor: los atributos AOS condicionales no se guardan en el HTML estático.
+
+Container/Element y Text de GenerateBlocks V2, Media y los wrappers compatibles de cabecera/navegación admiten entradas. No se abren bindings, patrones sincronizados ni fuentes dinámicas para modificar su texto. Para una cabecera compartida, inspeccionar su página Element por separado y establecer `pageIds` con la copia de prueba antes de aplicar.
+
+`sequence` habilita el proveedor existente en `core/group`, `generateblocks/element` o `anfb/animation-container`. Configurar primero la entrada del grupo y después:
+
+```json
+{"op":"sequence","path":[0],"block":"generateblocks/element","config":{"enabled":true,"interval":100}}
+```
+
+El intervalo admite 0–1000 ms en pasos de 50. Los hijos directos editables sin configuración reciben `inherit`. El retraso inicial es el `delay` del proveedor; cada hijo recibe ese retraso más su posición por el intervalo, sin acumular retrasos entre grupos. `order` ordena ascendentemente y los empates conservan el orden de bloques. Un proveedor anidado inicia su propia secuencia; un descendiente heredado dentro de otro hijo ya animado no recibe una segunda entrada. `clear` también quita el proveedor y el intervalo.
+
+`words-up` añade revelado suave por palabras con opacidad y desplazamiento; admite `distance` (12 px predeterminado), `mobileDistance` (8 px predeterminado) y `startWithBlock` (false predeterminado). Si `startWithBlock` es true, espera solo el retraso de la entrada del bloque y después el retraso propio; permite un segundo tiempo dentro del hero. Si es false, espera también la duración de esa entrada. No cambia el efecto `words` existente. Conserva HTML de enlaces, negritas y saltos; el texto original permanece disponible para tecnologías de asistencia.
+
+En Gutenberg: panel **Animation** para entradas/distancias y **Advanced settings → Only on pages (IDs)** para condiciones; panel **Sequence** para proveedor, intervalo, reproducción y lista compacta de hijos animados; **Inherit → Sequence order** para ordenar un hijo. En la barra de formatos del texto, **Text animation → Smooth words** controla el revelado y su previsualización. Las etiquetas siguen el idioma disponible del plugin.

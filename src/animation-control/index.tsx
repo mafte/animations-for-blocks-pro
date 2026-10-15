@@ -10,6 +10,7 @@ import {
 import {
 	BaseControl,
 	ToggleControl,
+	TextControl,
 	Button,
 	Icon,
 	__experimentalUnitControl as UnitControl,
@@ -134,6 +135,7 @@ const AnimationControl: React.FC<AnimationControlProps> = ({
 						})
 					}}
 				/>
+					{animation === 'inherit' && <TextControl label={__('Sequence order', 'animations-for-blocks')} type="number" min={0} value={value.order ?? 0} onChange={next => updateValue({ order: Math.max(0, Math.min(1000, parseInt(next) || 0)) })} help={__('Equal values follow block order.', 'animations-for-blocks')} />}
 				{hasAnimation && animation in VARIATIONS && <>
 					<ButtonGroup.Radio
 						size='small'
@@ -160,6 +162,10 @@ const AnimationControl: React.FC<AnimationControlProps> = ({
 						value={delay}
 						onChange={(nextDelay: number = 0) => updateValue({delay: nextDelay})}
 					/>
+					{['fade', 'slide'].includes(animation) && <>
+						<TextControl label={__('Distance (px)', 'animations-for-blocks')} type="number" min={0} max={200} value={value.distance ?? ''} onChange={next => updateValue({ distance: next === '' ? undefined : Math.max(0, Math.min(200, parseInt(next) || 0)) })} help={__('Leave empty to keep the original distance. Try 12, 24 or 40 px.', 'animations-for-blocks')} />
+						<TextControl label={__('Mobile distance (px)', 'animations-for-blocks')} type="number" min={0} max={200} value={value.mobileDistance ?? ''} onChange={next => updateValue({ mobileDistance: next === '' ? undefined : Math.max(0, Math.min(200, parseInt(next) || 0)) })} />
+					</>}
 					<Button
 						variant='secondary'
 						size='small'
@@ -174,6 +180,8 @@ const AnimationControl: React.FC<AnimationControlProps> = ({
 						</HStack>
 					</Button>
 					{showAdvancedSettings && <>
+						<TextControl label={__('Only on pages (IDs)', 'animations-for-blocks')} value={(value.pageIds || []).join(', ')} help={__('Empty means all pages. Scope shared headers to the test page.', 'animations-for-blocks')} onChange={next => updateValue({ pageIds: next.split(',').map(id => Number(id.trim())).filter(id => Number.isInteger(id) && id > 0) })} />
+
 						<ToggleControl
 							label={__('Once', 'animations-for-blocks')}
 							help={__('Animate only once, when scrolling down for the first time.', 'animations-for-blocks')}

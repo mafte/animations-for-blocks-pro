@@ -64,7 +64,8 @@
     "ease-in-quart",
     "ease-out-quart",
     "ease-in-out-quart",
-    "linear"
+    "linear",
+    "ease-out-soft"
   ],
   "anchorPlacements": [
     "top-bottom",
@@ -85,6 +86,67 @@
   "effects": [
     "typing",
     "words",
-    "count"
+    "count",
+    "words-up"
+  ],
+  "entryOptions": [
+    "animation",
+    "variation",
+    "duration",
+    "delay",
+    "once",
+    "mirror",
+    "easing",
+    "offset",
+    "anchorPlacement",
+    "distance",
+    "mobileDistance",
+    "pageIds",
+    "order"
+  ],
+  "sequenceBlocks": [
+    "anfb/animation-container",
+    "core/group",
+    "generateblocks/element"
+  ],
+  "renderedEntryBlocks": [
+    "core/heading",
+    "core/image",
+    "core/navigation",
+    "generateblocks/text",
+    "generateblocks/element",
+    "generateblocks/media",
+    "generateblocks-pro/site-header",
+    "generateblocks-pro/navigation",
+    "generateblocks-pro/menu-container",
+    "generateblocks-pro/menu-toggle"
+  ],
+  "sequenceOptions": [
+    "enabled",
+    "interval"
+  ],
+  "textOptions": [
+    "effect",
+    "duration",
+    "delay",
+    "cursor",
+    "start",
+    "end",
+    "decimals",
+    "decimal",
+    "thousands",
+    "prefix",
+    "suffix",
+    "distance",
+    "mobileDistance",
+    "startWithBlock"
+  ],
+  "operations": [
+    "entry",
+    "entry-remove",
+    "text",
+    "text-remove",
+    "sequence",
+    "clear"
   ]
 }
