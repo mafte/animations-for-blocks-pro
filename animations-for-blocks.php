@@ -120,7 +120,7 @@ function register_settings() {
 							'properties' => [
 								'animation' => [
 									'type' => 'string',
-									'enum' => ['fade', 'flip', 'slide', 'zoom', 'scale', 'inherit', 'default'],
+									'enum' => ['fade', 'flip', 'slide', 'zoom', 'scale', 'curtain', 'inherit', 'default'],
 									'default' => $default_settings['defaultAnimation']['animation'],
 								],
 								'variation' => [
@@ -234,7 +234,7 @@ function register_assets() {
 	);
 
 	// Keep content visible until the animation engine has initialized successfully.
-	wp_add_inline_style(WSD_ANFB_AOS_HANDLE, 'html:not(.anfb-aos-ready):not(.anfb-aos-pending) [data-aos] { opacity: 1 !important; visibility: visible !important; transform: none !important; transition: none !important; pointer-events: auto !important; }');
+	wp_add_inline_style(WSD_ANFB_AOS_HANDLE, 'html:not(.anfb-aos-ready):not(.anfb-aos-pending) [data-aos] { opacity: 1 !important; visibility: visible !important; transform: none !important; clip-path: none !important; transition: none !important; pointer-events: auto !important; }');
 
 	wp_register_script(
 		WSD_ANFB_AOS_HANDLE,

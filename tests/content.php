@@ -22,6 +22,15 @@ $check(transform_content($changed, [$entry]) === $changed, 'Entry apply must be 
 $entry['config'] = ['animation' => 'zoom', 'variation' => 'in'];
 $changed = transform_content($changed, [$entry]);
 $check(str_contains($changed, 'data-aos="zoom-in"') && !str_contains($changed, 'data-aos-duration'), 'Old entry attributes survived.');
+foreach (['left', 'right', 'up', 'down'] as $direction) {
+ $curtain = $entry;
+ $curtain['config'] = ['animation' => 'curtain', 'variation' => $direction, 'duration' => 900];
+ $result = transform_content($original, [$curtain]);
+ $check(str_contains($result, 'data-aos="curtain-' . $direction . '"'), 'Curtain serialization failed.');
+ $check(transform_content($result, [$curtain]) === $result, 'Curtain must be idempotent.');
+ $check(str_contains($result, '<strong>42</strong>'), 'Curtain changed formatted content.');
+}
+$reject(fn() => \wsd\anfb\validate_entry(['animation' => 'curtain', 'variation' => 'diagonal']), 'Reject unsupported curtain direction.');
 $clear = ['path' => [0], 'block' => 'core/paragraph', 'op' => 'clear'];
 $check(!str_contains(transform_content($changed, [$clear]), 'data-aos'), 'Clear left entry attributes.');
 $text = ['path' => [0], 'block' => 'core/paragraph', 'op' => 'text', 'selection' => ['text' => '42', 'occurrence' => 1], 'config' => ['effect' => 'count', 'end' => 42]];

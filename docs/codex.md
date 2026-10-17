@@ -103,3 +103,9 @@ El intervalo admite 0–1000 ms en pasos de 50. Los hijos directos editables sin
 `words-up` añade revelado suave por palabras con opacidad y desplazamiento; admite `distance` (12 px predeterminado), `mobileDistance` (8 px predeterminado) y `startWithBlock` (false predeterminado). Si `startWithBlock` es true, espera solo el retraso de la entrada del bloque y después el retraso propio; permite un segundo tiempo dentro del hero. Si es false, espera también la duración de esa entrada. No cambia el efecto `words` existente. Conserva HTML de enlaces, negritas y saltos; el texto original permanece disponible para tecnologías de asistencia.
 
 En Gutenberg: panel **Animation** para entradas/distancias y **Advanced settings → Only on pages (IDs)** para condiciones; panel **Sequence** para proveedor, intervalo, reproducción y lista compacta de hijos animados; **Inherit → Sequence order** para ordenar un hijo. En la barra de formatos del texto, **Text animation → Smooth words** controla el revelado y su previsualización. Las etiquetas siguen el idioma disponible del plugin.
+
+## Cortina
+
+En el panel **Animation → Curtain**, elegir **Right** (descubre desde el borde izquierdo), **Left** (desde el derecho), **Up** (desde abajo) o **Down** (desde arriba). Usa los controles existentes de duración, retraso, curva y reproducción; funciona con herencia y secuencias. La máscara recorta también sombras durante la entrada: preferir imágenes o contenedores sin controles flotantes.
+
+CLI: `{"op":"entry","path":[0],"block":"core/image","config":{"animation":"curtain","variation":"right","duration":1000,"once":true,"easing":"ease-out-soft"}}`. Las capacidades de inspect incluyen las cuatro direcciones. Sin JavaScript, ante fallo del motor o con movimiento reducido el contenido queda descubierto. No necesita bloques HTML ni código por página.

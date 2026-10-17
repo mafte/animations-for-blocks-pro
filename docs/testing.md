@@ -61,3 +61,13 @@ Se reinstaló la compilación 1.4.0 del proyecto en Akumbele, con copia previa d
 Brave permitió abrir el iframe real de Gutenberg, comprobar los controles de 24/16 px y 750/300 ms del título, guardar y volver a abrir sin avisos de bloques inválidos. El hash del contenido después del guardado fue idéntico al previo; repetir el plan con hash vigente devolvió changed=false. Se revisaron escritorio, scroll hasta el final, emulación iPhone 16 de 393×852 y apertura/cierre de menú móvil. Se restauró la vista de escritorio y quedó abierta la previa. No se enviaron formularios. No se repitieron en esta copia las emulaciones de movimiento reducido ni JavaScript desactivado. Compilación y npm test pasaron.
 
 Se confirmó que la página 19 mantiene su hash original. La copia 1353 sigue como borrador y contiene cero bloques HTML y cero etiquetas style/script añadidas. Captura: `/private/tmp/anfb-motion-v2-brave.png`.
+
+## Cortina — Akumbele, 17 de octubre de 2026
+
+Compilación y npm test correctos; tests/content.php pasó 62 comprobaciones sin escribir páginas. Se añadieron las cuatro direcciones, preservación de HTML, idempotencia y rechazo de dirección inválida. PHP lint correcto.
+
+Borrador 1541 «Nosotros — Demostración Cortina», copia de 297. Cuatro entradas de 1500 ms: subtítulo, título y dos imágenes, con direcciones alternadas. Inspect, simulación y aplicación registrados en /private/tmp/anfb-curtain-*.json; respaldo privado en ~/.local/share/anfb-backups/akumbele/curtain-demo/before-1541.json. Fuente original conservó hash c3486311d774f647369a8fa2a39a5e97b74dc127658726707d4d13400bab4144.
+
+Navegador interno: máscara inicial inset(0 0 0 100%), 50 muestras con valores intermedios entre 98.619% y 31.7115%, estado final inset(0px); revisadas imágenes al scroll. Recursos del plugin incluyen clip-path entre las propiedades de transición. La copia no contiene bloques HTML ni etiquetas style/script adicionales.
+
+Gutenberg volvió a mostrar iframe about:blank y controles incompletos incluso con el título seleccionado desde la lista. No se certificó visualmente guardado/reapertura ni los controles; no se deduce que el contenido esté dañado. No se ejecutó nueva emulación móvil, movimiento reducido o JavaScript desactivado; los estilos incluyen liberación de máscara para estas dos últimas condiciones y para fallo del motor. No se ejecutaron las fixtures destructivas del sitio desechable en Akumbele.

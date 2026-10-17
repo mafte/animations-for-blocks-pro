@@ -29,7 +29,7 @@
 }
 
 html:not(.no-js) [data-aos][data-aos] {
-	transition-property: transform, opacity, background, background-color, color, filter;
+	transition-property: transform, opacity, background, background-color, color, filter, clip-path;
 }
 
 [data-anfb-distance] { --anfb-effective-distance: var(--anfb-distance, 100px); }
@@ -44,3 +44,16 @@ html:not(.no-js) [data-aos][data-aos] {
 }
 
 html:not(.no-js) [data-aos][data-aos-easing="ease-out-soft"] { transition-timing-function: cubic-bezier(.22,.61,.36,1); }
+
+// The mask changes, not the element's position or dimensions.
+[data-aos="curtain-right"] { clip-path: inset(0 100% 0 0); }
+[data-aos="curtain-up"] { clip-path: inset(100% 0 0 0); }
+[data-aos="curtain-down"] { clip-path: inset(0 0 100% 0); }
+[data-aos="curtain-left"] { clip-path: inset(0 0 0 100%); }
+[data-aos^="curtain-"].aos-animate,
+[data-aos^="curtain-"][data-anfb-animate] { clip-path: inset(0 0 0 0); }
+
+.editor-styles-wrapper [data-aos^="curtain-"]:not([data-anfb-init]) { clip-path: none; }
+@media (prefers-reduced-motion: reduce) {
+	[data-aos^="curtain-"][data-aos] { clip-path: none !important; transition: none !important; }
+}

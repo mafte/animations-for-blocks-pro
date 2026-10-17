@@ -1,6 +1,7 @@
 import {__} from '@wordpress/i18n'
 
 export const ANIMATIONS = [
+	{ label: __('Curtain', 'animations-for-blocks'), value: 'curtain' },
 	{
 		label: __('Fade', 'animations-for-blocks'),
 		value: 'fade',
@@ -45,6 +46,12 @@ export const DYNAMIC_ANIMATIONS = [
 export const DYNAMIC_ANIMATION_NAMES = DYNAMIC_ANIMATIONS.map(({value}) => value)
 
 export const VARIATIONS = {
+	curtain: [
+		{ label: __('Right', 'animations-for-blocks'), value: 'right' },
+		{ label: __('Left', 'animations-for-blocks'), value: 'left' },
+		{ label: __('Up', 'animations-for-blocks'), value: 'up' },
+		{ label: __('Down', 'animations-for-blocks'), value: 'down' },
+	],
 	fade: [
 		{
 			label: __('Fade in', 'animations-for-blocks'),
