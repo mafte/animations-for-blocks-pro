@@ -49,7 +49,7 @@ function validate_entry($config) {
 }
 
 function validate_text_config($config) {
-	if (!is_array($config) || array_diff(array_keys($config), ['effect', 'duration', 'delay', 'cursor', 'start', 'end', 'decimals', 'decimal', 'thousands', 'prefix', 'suffix', 'distance', 'mobileDistance', 'startWithBlock'])) {
+	if (!is_array($config) || array_diff(array_keys($config), animation_schema()['textOptions'])) {
 		throw new \InvalidArgumentException('Unknown text option or invalid config.');
 	}
 	if (!in_array($config['effect'] ?? '', animation_schema()['effects'], true)) {

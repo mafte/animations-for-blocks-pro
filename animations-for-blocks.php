@@ -87,6 +87,7 @@ function get_animation_block_context_types() {
 function register_settings() {
 
 	$default_settings = get_default_settings();
+	$schema = animation_schema();
 
 	register_setting(
 		'animations-for-blocks',
@@ -120,12 +121,12 @@ function register_settings() {
 							'properties' => [
 								'animation' => [
 									'type' => 'string',
-									'enum' => ['fade', 'flip', 'slide', 'zoom', 'scale', 'curtain', 'inherit', 'default'],
+									'enum' => array_merge(array_keys($schema['variations']), ['inherit', 'default']),
 									'default' => $default_settings['defaultAnimation']['animation'],
 								],
 								'variation' => [
 									'type' => 'string',
-									'enum' => ['fade', 'up', 'down', 'left', 'right', 'up-left', 'up-right', 'down-left', 'down-right', 'in', 'in-up', 'in-down', 'in-left', 'in-right', 'out', 'out-up', 'out-down', 'out-left', 'out-right', 'in-x', 'in-y', 'out-x', 'out-y'],
+									'enum' => array_values(array_unique(array_merge(...array_values($schema['variations'])))),
 									'default' => $default_settings['defaultAnimation']['variation'],
 								],
 								'distance' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 200],
@@ -150,7 +151,7 @@ function register_settings() {
 								],
 								'easing' => [
 									'type' => 'string',
-									'enum' => ['ease', 'ease-in', 'ease-out', 'ease-in-out', 'ease-in-back', 'ease-out-back', 'ease-in-out-back', 'ease-in-sine', 'ease-out-sine', 'ease-in-out-sine', 'ease-in-quad', 'ease-out-quad', 'ease-in-out-quad', 'ease-in-cubic', 'ease-out-cubic', 'ease-in-out-cubic', 'ease-in-quart', 'ease-out-quart', 'ease-in-out-quart', 'linear', 'ease-out-soft'],
+									'enum' => $schema['easings'],
 									'default' => $default_settings['defaultAnimation']['easing'],
 								],
 								'offset' => [
@@ -159,7 +160,7 @@ function register_settings() {
 								],
 								'anchorPlacement' => [
 									'type' => 'string',
-									'enum' => ['top-bottom', 'center-bottom', 'bottom-bottom', 'top-center', 'center-center', 'bottom-center', 'top-top', 'bottom-top', 'center-top'],
+									'enum' => $schema['anchorPlacements'],
 									'default' => $default_settings['defaultAnimation']['anchorPlacement'],
 								],
 							],
@@ -320,7 +321,7 @@ function editor_assets() {
 		]
 	);
 
-	wp_set_script_translations('animations-for-blocks', 'animations-for-blocks');
+	wp_set_script_translations('animations-for-blocks-admin', 'animations-for-blocks');
 }
 add_action('enqueue_block_editor_assets', __NAMESPACE__ . '\\editor_assets', 5);
 

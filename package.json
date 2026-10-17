@@ -5,7 +5,8 @@
     "start:hot": "wp-scripts start --hot --allowed-hosts all --stats=minimal",
     "build": "wp-scripts build --stats=errors-only",
     "release": "pnpm run build && wp-scripts plugin-zip",
-    "test": "node tests/runtime.mjs && node tests/init.mjs",
+    "test": "node tests/runtime.mjs && node tests/init.mjs && npm run test:unit",
+    "test:unit": "wp-scripts test-unit-js --runInBand",
     "test:browser": "node tests/browser.cjs"
   },
   "devDependencies": {

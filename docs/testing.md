@@ -1,5 +1,7 @@
 # Desarrollo y comprobaciones
 
+Para arquitectura, reglas de interfaz y recetas de extensión, lee [development.md](development.md).
+
 Código fuente recuperado de la revisión documentada en `upstream.md`. PHP mínimo 8.1; WordPress mínimo 6.6. Usar pnpm 10.24.0 (el `packageManager` está fijado):
 
 ```sh
@@ -10,6 +12,8 @@ php -l animations-for-blocks.php
 ```
 
 Los archivos `build/` son parte del plugin distribuible. El build conserva AOS y Lenis y añade el módulo `text`. No editar los bundles a mano.
+
+`npm test` ejecuta las comprobaciones existentes de runtime y arranque, más las pruebas de contrato con el runner de `@wordpress/scripts` ya instalado. `npm run test:unit` permite ejecutar solo estas últimas. No requieren WordPress: comprueban catálogos, variantes ordenadas, etiquetas traducibles, serialización y selección en los controles compartidos. Las pruebas de controles sustituyen las primitivas de WordPress; la revisión de Gutenberg sigue siendo necesaria. `tests/content.php` comprueba además los enumerados REST, las claves de texto y el handle de traducciones del editor en WordPress real.
 
 Las pruebas de integración requieren un WordPress desechable, con GenerateBlocks V2 y el plugin activos. No usar sitios de clientes. Definir `ANFB_TEST_SITE` como `true` en el `wp-config.php` de esa instalación. Puede utilizarse SQLite Database Integration para no tocar servidores MySQL existentes.
 
@@ -23,6 +27,8 @@ ANFB_TEST_URL=http://127.0.0.1:8765 ANFB_TEST_POST=ID_DEVUELTO npm run test:brow
 La prueba CLI crea y elimina una página y un usuario de prueba; usa copias temporales privadas. La fixture de navegador crea una página publicada `ANFB acceptance fixture`. La prueba de navegador espera el usuario `anfb-test`, contraseña `anfb-local-tests-only`, y Chrome en su ruta macOS habitual (sobrescribible con `CHROME_PATH`). Estas credenciales son solo para el sitio desechable.
 
 La prueba de navegador guarda efectos, vuelve a abrir el editor y comprueba escritorio, móvil, movimiento reducido y JavaScript desactivado. Las capturas quedan en `/private/tmp/anfb-{editor,desktop,mobile}.png`. Tras verificar, restaurar la fixture con su copia original o eliminar el sitio desechable.
+
+También verifica el selector de entrada con teclado, sus variantes, el guardado REST de la animación global (restaurando los ajustes previos) y la persistencia de secuencias. Guarda capturas adicionales en `/private/tmp/anfb-{entry-controls,global-settings,sequence}.png`. El login espera el enfoque automático diferido de WordPress; la comprobación de fallo del motor espera la liberación del respaldo antes de medir visibilidad.
 
 ## Verificación de esta ampliación
 
@@ -71,3 +77,14 @@ Borrador 1541 «Nosotros — Demostración Cortina», copia de 297. Cuatro entra
 Navegador interno: máscara inicial inset(0 0 0 100%), 50 muestras con valores intermedios entre 98.619% y 31.7115%, estado final inset(0px); revisadas imágenes al scroll. Recursos del plugin incluyen clip-path entre las propiedades de transición. La copia no contiene bloques HTML ni etiquetas style/script adicionales.
 
 Gutenberg volvió a mostrar iframe about:blank y controles incompletos incluso con el título seleccionado desde la lista. No se certificó visualmente guardado/reapertura ni los controles; no se deduce que el contenido esté dañado. No se ejecutó nueva emulación móvil, movimiento reducido o JavaScript desactivado; los estilos incluyen liberación de máscara para estas dos últimas condiciones y para fallo del motor. No se ejecutaron las fixtures destructivas del sitio desechable en Akumbele.
+
+## Preparación para extensiones — 17 de octubre de 2026
+
+Comprobado en un WordPress 6.6 desechable con `ANFB_TEST_SITE`, PHP 8.1.29, SQLite Database Integration 3.1.0, GenerateBlocks 2.3.0, GeneratePress y Chrome. No se modificaron sitios existentes. GenerateBlocks 2.5.0 de la instalación local exige WordPress 6.7; se utilizó 2.3.0 para comprobar el mínimo del plugin sin alterar esa instalación.
+
+- Compilación correcta y `build/` regenerado sin diferencias: este cambio no modifica el código fuente de los bundles. El build conserva el aviso existente de datos Browserslist antiguos; no se actualizaron dependencias.
+- `npm test`: runtime, arranque y 28 pruebas de contrato/controles correctos, sin dependencias nuevas.
+- Sintaxis PHP correcta en los tres archivos PHP modificados; 73 comprobaciones de contenido, enumerados REST, validación de texto y traducciones correctas en WordPress real.
+- Integración CLI correcta: permisos, hash, simulación, validación atómica, idempotencia, copias privadas, limpieza y restauración.
+- Integración de navegador correcta: entrada por teclado, variantes, preferencias globales por REST, secuencias, herramienta de texto, GenerateBlocks, guardado/reapertura sin bloques inválidos, animaciones activas, escritorio/móvil, movimiento reducido, JavaScript desactivado y fallo de inicialización.
+- Revisadas las capturas de controles, preferencias, secuencias y móvil. No se ejecutó una matriz adicional de WordPress, PHP, Safari o Firefox para este cambio. La revisión de textos ingleses y ubicación visual sigue siendo parte de cada futura entrega; las pruebas de contrato no sustituyen ese criterio.

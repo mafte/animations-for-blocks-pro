@@ -11,6 +11,22 @@ $reject = function ($callback, $message) use ($check) {
 	try { $callback(); } catch (InvalidArgumentException $e) { $check(true, $message); return; }
 	$check(false, $message);
 };
+$schema = wsd\anfb\animation_schema();
+$settings = get_registered_settings()['animations-for-blocks'];
+$properties = $settings['show_in_rest']['schema']['properties']['defaultAnimation']['properties'];
+$check($properties['animation']['enum'] === array_merge(array_keys($schema['variations']), ['inherit', 'default']), 'REST animation enum differs from schema.');
+$check($properties['variation']['enum'] === array_values(array_unique(array_merge(...array_values($schema['variations'])))), 'REST variation enum differs from schema.');
+$check($properties['easing']['enum'] === $schema['easings'], 'REST easing enum differs from schema.');
+$check($properties['anchorPlacement']['enum'] === $schema['anchorPlacements'], 'REST anchor enum differs from schema.');
+$check(rest_validate_value_from_schema(wsd\anfb\get_default_settings(), $settings['show_in_rest']['schema']) === true, 'Default settings fail their REST schema.');
+$text_config = ['effect' => 'count', 'duration' => 500, 'delay' => 0, 'cursor' => false, 'start' => 0, 'end' => 42, 'decimals' => 0, 'decimal' => '.', 'thousands' => ',', 'prefix' => '', 'suffix' => '%', 'distance' => 12, 'mobileDistance' => 8, 'startWithBlock' => true];
+$check(array_diff($schema['textOptions'], array_keys($text_config)) === [] && array_diff(array_keys($text_config), $schema['textOptions']) === [], 'Text option coverage differs from schema.');
+$check(validate_text_config($text_config) == $text_config, 'Supported text options were rejected or changed.');
+$reject(fn() => validate_text_config(array_merge($text_config, ['unknown' => true])), 'Unknown text option accepted.');
+$reject(fn() => validate_text_config('count'), 'Non-object text config accepted.');
+$reject(fn() => validate_text_config(['effect' => 'unknown']), 'Unknown text effect accepted.');
+wsd\anfb\editor_assets();
+$check(wp_scripts()->registered['animations-for-blocks-admin']->textdomain === 'animations-for-blocks', 'Editor translations use the wrong script handle.');
 $original = '<!-- wp:paragraph --><p class="keep">Hola &amp; café 👩🏽‍💻 <strong>42</strong> y 42.</p><!-- /wp:paragraph -->';
 $heading = '<!-- wp:heading --><h2 class="wp-block-heading">Título</h2><!-- /wp:heading -->';
 $check(inspect_blocks(parse_blocks($heading))[0]['textEditable'], 'Heading render callback must allow static text.');
