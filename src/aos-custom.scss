@@ -28,8 +28,8 @@
 	transform: scaleY(var(--aos-scale-out));
 }
 
-[data-aos][data-aos] {
-	transition-property: transform, opacity, background, color, filter;
+html:not(.no-js) [data-aos][data-aos] {
+	transition-property: transform, opacity, background, background-color, color, filter;
 }
 
 [data-anfb-distance] { --anfb-effective-distance: var(--anfb-distance, 100px); }
