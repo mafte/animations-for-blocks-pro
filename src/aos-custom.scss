@@ -3,7 +3,6 @@
 	--aos-scale-out: 0.97;
 
 	opacity: 0;
-	transition-property: transform, opacity;
 
 	&.aos-animate {
 		opacity: 1;
@@ -27,6 +26,10 @@
 }
 [data-aos=scale-out-y] {
 	transform: scaleY(var(--aos-scale-out));
+}
+
+[data-aos][data-aos] {
+	transition-property: transform, opacity, background, color, filter;
 }
 
 [data-anfb-distance] { --anfb-effective-distance: var(--anfb-distance, 100px); }
