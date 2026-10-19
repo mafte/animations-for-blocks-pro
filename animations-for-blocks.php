@@ -25,6 +25,7 @@ define('WSD_ANFB_DIR', dirname(__FILE__));
 define('WSD_ANFB_AOS_HANDLE', 'animate-on-scroll');
 
 require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/persistence.php';
 require_once __DIR__ . '/includes/sequence.php';
 require_once __DIR__ . '/includes/content.php';
 require_once __DIR__ . '/includes/text.php';
