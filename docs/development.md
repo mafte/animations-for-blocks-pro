@@ -10,9 +10,9 @@ El objetivo es incorporar futuras funciones en los patrones existentes, conserva
 
 | Función | Configuración y edición | Persistencia y ejecución |
 | --- | --- | --- |
-| Entrada de un bloque | `animationsForBlocks`, editado mediante `AnimationControl` | Atributos `data-aos*` y `data-anfb-distance*`; AOS y estilos compartidos |
+| Entrada de un bloque | `animationsForBlocks`, editado mediante `AnimationControl` | `metadata.anfb.entry`; atributos de ejecución añadidos al renderizar |
 | Efecto sobre texto seleccionado | Formato RichText `anfb/text`, editado en “Text animation” | `<span class="anfb-text" data-anfb="…">`; runtime de texto |
-| Secuencia de bloques | `isAnimationProvider`, `animationStagger` y entrada del grupo; hijos con `animation: 'inherit'` | Resolución de herencia y retrasos; utiliza el mismo motor de entradas |
+| Secuencia de bloques | `metadata.anfb.sequence` y entrada del grupo; hijos con `animation: 'inherit'` | Resolución de herencia y retrasos; utiliza el mismo motor de entradas |
 
 Una dirección es una variante de una entrada, no una función independiente ni un efecto de texto. Una secuencia coordina entradas existentes.
 
@@ -30,9 +30,9 @@ Orden visual actual: **Curtain, Fade, Flip, Slide, Zoom, Scale**. Las opciones *
 
 1. `src/AnimationsForBlocks.tsx` registra el atributo `animationsForBlocks` y los filtros de Gutenberg. `src/types.ts` expone los tipos compartidos.
 2. `src/InspectorControls.tsx` monta el panel; `src/InspectorControlsLocation.tsx` respeta la ubicación configurada. `src/animation-control/index.tsx` edita la configuración. El modal de preferencias reutiliza ese mismo control para la animación predeterminada.
-3. `src/utils.ts`, mediante `getAnimationProps()`, produce los atributos guardados y de previsualización. `src/AnimatedBlockListBlock.tsx` aplica la vista del editor. `src/hooks.ts` resuelve Default, Inherit y secuencias en el editor.
-4. En PHP, `block_args()` registra los atributos y contextos; `animate_block()` resuelve la configuración efectiva y `get_animation_attributes()` produce los atributos del frontend. `sync_entry_html()` mantiene el HTML estático alineado con el guardado de Gutenberg al editar mediante CLI.
-5. Las entradas normales pueden guardar sus atributos HTML. Default, Inherit y las entradas condicionadas por páginas se resuelven en servidor; no incrustar su resultado como si fuera estático. Los proveedores de secuencia no deben animar además su propio wrapper.
+3. `src/utils.ts`, mediante `getAnimationProps()`, produce atributos de previsualización y de compatibilidad del guardado antiguo. `src/AnimatedBlockListBlock.tsx` aplica la vista del editor. `src/hooks.ts` resuelve Default, Inherit y secuencias en el editor.
+4. En PHP, `block_args()` registra los atributos y contextos; `animate_block()` resuelve la configuración efectiva y `get_animation_attributes()` produce los atributos del frontend. `includes/persistence.php` adapta metadatos a los contextos existentes; las escrituras nuevas de CLI limpian atributos de entrada del HTML.
+5. Las escrituras nuevas guardan configuración en `metadata.anfb`; solo la compatibilidad antigua conserva atributos HTML. Default, Inherit y las entradas condicionadas por páginas se resuelven en servidor; no incrustar su resultado como si fuera estático. Los proveedores de secuencia no deben animar además su propio wrapper.
 6. `src/aos-custom.scss` incorpora Scale, Curtain, distancias responsive y la curva personalizada sobre AOS. `src/init.js` prepara el estado inicial y arranca AOS. El respaldo PHP y el arranque liberan el contenido si el motor falla. `src/editor.scss` adapta los estilos de previsualización.
 
 Los ajustes globales tienen un esquema REST en `register_settings()`, cuyos enumerados se obtienen del JSON. Los valores iniciales globales están en `get_default_settings()` y `DEFAULT_SETTINGS` / `DEFAULT_ANIMATION`: mantener ambos lados alineados si una petición cambia esos valores.
@@ -142,3 +142,7 @@ Antes de implementar una petición, identificar su fila en la tabla de ubicacion
 - [ ] **Documentación:** actualizar capacidades, recetas y guía CLI afectadas; registrar lo comprobado y lo pendiente con sus versiones reales.
 
 Las pruebas de contrato detectan discrepancias de valores, orden y selección, pero no certifican el idioma inglés ni la calidad del diseño. Revisar los textos fuente y la interfaz como parte de la entrega. No declarar verificación visual si el iframe de Gutenberg no pudo abrirse ni usar un sitio de cliente para ejecutar fixtures.
+
+## Desactivación segura 1.5
+
+Contrato, migración explícita y límites: [safe-deactivation.md](safe-deactivation.md). Los metadatos son canónicos; los aliases antiguos se materializan solo para runtime y compatibilidad. No eliminar la vía antigua sin una estrategia para páginas aún sin migrar.

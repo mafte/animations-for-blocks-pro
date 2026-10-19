@@ -5,7 +5,7 @@ Tags: gutenberg, block, animation, animate, slide
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,7 +34,7 @@ By default the plugin will not play animations for users that have the "prefers-
 Since some elements are initially placed off-screen to then animate back to their normal position it can cause a scrollbar to appear. To prevent this the overflow should be hidden on one of the parent elements. Which element you should target is specific to your site. For example, you can try adding custom CSS: `.wp-site-blocks { overflow: hidden; }`, but you have to make sure that this doesn't break any other features on your site that require overflow being visible.
 
 = Does it work for all blocks? =
-It should work with normal blocks that render a valid WP Element that can utilize the `blocks.getSaveContent.extraProps` filter as well as dynamic blocks that utilize a `render_callback`. Third party blocks that do something unorthodox may not work.
+Animations are added when supported blocks render. New settings use native block metadata without changing saved entry markup. Third party blocks that do something unorthodox may not work.
 [Known unsupported blocks](https://github.com/ska-dev-1/animations-for-blocks/blob/main/animations-for-blocks.php#L172-L175)
 
 = Disable block support =
@@ -78,6 +78,12 @@ Adds typing, word reveal and counters to selected text in Paragraph, Heading and
 WP-CLI commands: `wp anfb inspect`, `apply`, `clear`, `restore`. Run with an explicit `--user` who can edit the post. Read `docs/codex.md` for the versioned JSON format, dry-run workflow and private backups. Read `docs/testing.md` for build and isolated tests.
 
 == Changelog ==
+
+= 1.5.0 =
+* New animation settings keep content editable when the plugin is deactivated and preserve settings when it is reactivated.
+* Use native Groups for new sequences; legacy animation containers remain readable and can be converted.
+* Added controlled per-page migration with dry-run, content hash, private backup and guarded restore. Existing pages must be migrated before safe deactivation.
+
 
 = 1.3.0 =
 * Restore maintainable upstream sources and build configuration.

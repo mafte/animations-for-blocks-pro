@@ -109,3 +109,7 @@ En Gutenberg: panel **Animation** para entradas/distancias y **Advanced settings
 En el panel **Animation → Curtain**, elegir **Right** (descubre desde el borde izquierdo), **Left** (desde el derecho), **Up** (desde abajo) o **Down** (desde arriba). Usa los controles existentes de duración, retraso, curva y reproducción; funciona con herencia y secuencias. La máscara recorta también sombras durante la entrada: preferir imágenes o contenedores sin controles flotantes.
 
 CLI: `{"op":"entry","path":[0],"block":"core/image","config":{"animation":"curtain","variation":"right","duration":1000,"once":true,"easing":"ease-out-soft"}}`. Las capacidades de inspect incluyen las cuatro direcciones. Sin JavaScript, ante fallo del motor o con movimiento reducido el contenido queda descubierto. No necesita bloques HTML ni código por página.
+
+## Migración para desactivación segura
+
+Desde 1.5, entradas y secuencias nuevas usan metadatos nativos. Antes de desactivar sobre páginas antiguas, seguir [safe-deactivation.md](safe-deactivation.md): `anfb migrate POST_ID --content-hash=HASH --dry-run`, después aplicar con respaldo privado. No usar `clear` como sustituto: clear elimina la configuración; migrate la conserva.
