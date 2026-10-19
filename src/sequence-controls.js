@@ -1,3 +1,4 @@
+import { animationAttributes, animationUpdate } from './persistence'
 import { PanelBody, ToggleControl, TextControl, Button } from '@wordpress/components'
 import { useSelect, useDispatch } from '@wordpress/data'
 import { __ } from '@wordpress/i18n'
@@ -8,12 +9,13 @@ export default function SequenceControls({ clientId, attributes, setAttributes }
 	const block = useSelect(select => select('core/block-editor').getBlock(clientId), [clientId])
 	const { updateBlockAttributes, selectBlock } = useDispatch('core/block-editor')
 	if (!schema.sequenceBlocks.includes(block?.name)) return null
-	const children = block.innerBlocks || []
+	const children = (block.innerBlocks || []).map(child => ({ ...child, attributes: animationAttributes(child.attributes) }))
+	attributes = animationAttributes(attributes)
 	return <PanelBody title={__('Sequence', 'animations-for-blocks')} initialOpen={!!attributes.isAnimationProvider}>
 		<ToggleControl label={__('Provide animation to children', 'animations-for-blocks')} checked={!!attributes.isAnimationProvider} onChange={enabled => {
 			setAttributes({ isAnimationProvider: enabled, ...(!attributes.animationsForBlocks?.animation && enabled ? { animationsForBlocks: { animation: 'fade', variation: 'up', duration: 450, delay: 0, once: true, distance: 24, mobileDistance: 16, easing: 'ease-out-cubic' } } : {}) })
 			if (enabled) children.forEach(child => {
-				if (!unsupportedBlocks.includes(child.name) && !child.attributes.animationsForBlocks?.animation && !child.attributes.isAnimationProvider) updateBlockAttributes(child.clientId, { animationsForBlocks: { animation: 'inherit' } })
+				if (!unsupportedBlocks.includes(child.name) && !child.attributes.animationsForBlocks?.animation && !child.attributes.isAnimationProvider) updateBlockAttributes(child.clientId, animationUpdate(child.attributes, { animationsForBlocks: { animation: 'inherit' } }))
 			})
 		}} />
 		{attributes.isAnimationProvider && <>

@@ -99,6 +99,22 @@ class Animation_CLI {
 	}
 
 	/**
+	 * Migrate one page to plugin-independent storage, without changing referenced sources.
+	 *
+	 * @synopsis <post-id> --content-hash=<hash> [--dry-run] [--backup=<file>]
+	 */
+	public function migrate($args, $assoc) {
+		$this->run(function () use ($args, $assoc) {
+			$post = $this->post($args);
+			if (($assoc['content-hash'] ?? '') !== hash('sha256', $post->post_content)) {
+				throw new \RuntimeException('Page changed; inspect again before migrating.');
+			}
+			$result = migrate_content($post->post_content);
+			$this->save($post, $result['content'], $assoc, ['pendingSources' => $result['pendingSources'], 'complete' => !$result['pendingSources']]);
+		});
+	}
+
+	/**
 	 * Restore a private backup only while its resulting page remains unchanged.
 	 *
 	 * @synopsis <post-id> --file=<file> [--dry-run]

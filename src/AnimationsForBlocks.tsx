@@ -101,11 +101,11 @@ const withFeatureInspectorControls = createHigherOrderComponent(
 )
 
 /**
- * Add feature extra props to block save component output.
+ * Preserve legacy saved markup until the page is explicitly migrated.
  */
 const withAnimationProps = (extraProps: Record<string, any>, blockType: any, attributes: BlockAttributes) => {
 
-	if(featureIsSupported(blockType)) {
+	if(featureIsSupported(blockType) && !Object.prototype.hasOwnProperty.call(attributes.metadata || {}, 'anfb')) {
 
 		const {
 			animationsForBlocks = {},

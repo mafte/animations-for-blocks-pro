@@ -13,7 +13,8 @@
   "textdomain": "animations-for-blocks",
   "supports": {
     "anchor": true,
-    "animationsForBlocks": true
+    "animationsForBlocks": true,
+    "inserter": false
   },
   "attributes": {
     "isAnimationProvider": {

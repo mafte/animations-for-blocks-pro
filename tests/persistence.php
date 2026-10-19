@@ -15,3 +15,13 @@ $markup = '<!-- wp:paragraph ' . wp_json_encode($stored) . ' --><p>Keep text</p>
 $rendered = do_blocks($markup);
 $assert(str_contains($rendered, 'Keep text'), 'Render lost content.');
 echo "Persistence checks passed.\n";
+
+$para = '<!-- wp:paragraph {"animationsForBlocks":{"animation":"inherit"}} --><p>Sequence</p><!-- /wp:paragraph -->';
+$inner = '<!-- wp:group {"isAnimationProvider":true,"animationStagger":50,"animationsForBlocks":{"animation":"zoom","variation":"in"}} --><div class="wp-block-group">' . $para . $para . '</div><!-- /wp:group -->';
+$outer = '<!-- wp:group {"isAnimationProvider":true,"animationStagger":100,"animationsForBlocks":{"animation":"fade","variation":"up"}} --><div class="wp-block-group">' . $para . $inner . $para . '</div><!-- /wp:group -->';
+$native = wsd\anfb\migrate_content($outer)['content'];
+$output = do_blocks($native);
+$assert(substr_count($output, 'data-aos="fade-up"') === 2 && substr_count($output, 'data-aos="zoom-in"') === 2, 'Native nested providers lost scope.');
+$assert(str_contains($output,'data-aos-delay="50"') && str_contains($output,'data-aos-delay="100"'), 'Native nested sequence intervals lost.');
+$assert(do_blocks($native) === $output, 'Native sequence leaked state across renders.');
+echo "Native nested sequence checks passed.\n";

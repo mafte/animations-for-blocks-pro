@@ -1,3 +1,4 @@
+import { animationAttributes } from './persistence'
 import * as React from 'react'
 import cx from 'classnames'
 
@@ -50,7 +51,7 @@ const AnimatedBlockListBlock: React.FC<AnimatedBlockListBlockProps> = props => {
 	const {
 		animationsForBlocks = {},
 		isAnimationProvider = false,
-	} = attributes
+	} = animationAttributes(attributes)
 
 	const animationConfig = useAnimationConfig(clientId, animationsForBlocks, !isAnimationProvider)
 

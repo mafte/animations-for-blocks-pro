@@ -1,3 +1,4 @@
+import { animationAttributes, animationUpdate, validAnimationMetadata } from './persistence'
 import * as React from 'react'
 import {__, _x, sprintf} from '@wordpress/i18n'
 
@@ -92,13 +93,15 @@ export interface InspectorControlsProps {
 const InspectorControls: React.FC<InspectorControlsProps> = ({
 	clientId,
 	attributes,
-	setAttributes,
+	setAttributes: saveAttributes,
 }) => {
+
+	const setAttributes = (updates: AnimationsForBlocksBlockAttributes) => saveAttributes(animationUpdate(attributes, updates))
 
 	const {
 		animationsForBlocks = {},
 		isAnimationProvider = false,
-	} = attributes
+	} = animationAttributes(attributes)
 
 	const {
 		animation,
@@ -170,7 +173,7 @@ const InspectorControls: React.FC<InspectorControlsProps> = ({
 		}
 
 		const animationData = ANIMATIONS.find(({value}) => value === animation)
-		if(!animationData) {
+		if(!animationData || !validAnimationMetadata({ version: 1, entry: attributes })) {
 			invalidError()
 			return
 		}
@@ -178,6 +181,8 @@ const InspectorControls: React.FC<InspectorControlsProps> = ({
 		updateAttributes(attributes)
 		createSuccessNotice(sprintf(__('Applied animation: %s.', 'animations-for-blocks'), animationData.label), {type: 'snackbar'})
 	}
+
+	if (Object.prototype.hasOwnProperty.call(attributes.metadata || {}, 'anfb') && !validAnimationMetadata(attributes.metadata?.anfb)) return <InspectorControlsLocation><Notice status="warning" isDismissible={false}>{__('This animation has an unsupported data format. Preserve the content and check the plugin version before editing it.', 'animations-for-blocks')}</Notice></InspectorControlsLocation>
 
 	return (
 		<InspectorControlsLocation>

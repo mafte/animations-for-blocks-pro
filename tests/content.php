@@ -32,17 +32,18 @@ $heading = '<!-- wp:heading --><h2 class="wp-block-heading">Título</h2><!-- /wp
 $check(inspect_blocks(parse_blocks($heading))[0]['textEditable'], 'Heading render callback must allow static text.');
 $entry = ['path' => [0], 'block' => 'core/paragraph', 'op' => 'entry', 'config' => ['animation' => 'fade', 'variation' => 'up', 'duration' => 800, 'offset' => 0, 'once' => true]];
 $changed = transform_content($original, [$entry]);
-$check(str_contains($changed, 'data-aos="fade-up"') && str_contains($changed, 'data-aos-offset="0"'), 'Entry attributes missing.');
+$check(!str_contains($changed, 'data-aos=') && isset(parse_blocks($changed)[0]['attrs']['metadata']['anfb']), 'Entry must be stored as metadata, not saved HTML.');
+$check(str_contains(do_blocks($changed), 'data-aos="fade-up"') && str_contains(do_blocks($changed), 'data-aos-offset="0"'), 'Entry attributes missing.');
 $check(str_contains($changed, 'class="keep"') && str_contains($changed, '<strong>42</strong>'), 'Unrelated markup changed.');
 $check(transform_content($changed, [$entry]) === $changed, 'Entry apply must be idempotent.');
 $entry['config'] = ['animation' => 'zoom', 'variation' => 'in'];
 $changed = transform_content($changed, [$entry]);
-$check(str_contains($changed, 'data-aos="zoom-in"') && !str_contains($changed, 'data-aos-duration'), 'Old entry attributes survived.');
+$check(str_contains(do_blocks($changed), 'data-aos="zoom-in"') && !str_contains(do_blocks($changed), 'data-aos-duration'), 'Old entry attributes survived.');
 foreach (['left', 'right', 'up', 'down'] as $direction) {
  $curtain = $entry;
  $curtain['config'] = ['animation' => 'curtain', 'variation' => $direction, 'duration' => 900];
  $result = transform_content($original, [$curtain]);
- $check(str_contains($result, 'data-aos="curtain-' . $direction . '"'), 'Curtain serialization failed.');
+ $check(str_contains(do_blocks($result), 'data-aos="curtain-' . $direction . '"'), 'Curtain serialization failed.');
  $check(transform_content($result, [$curtain]) === $result, 'Curtain must be idempotent.');
  $check(str_contains($result, '<strong>42</strong>'), 'Curtain changed formatted content.');
 }
@@ -106,7 +107,7 @@ $check(str_contains($stale, 'data-aos="fade-up"') && !str_contains($stale, 'data
 
 $motion = ['animation' => 'fade', 'variation' => 'up', 'distance' => 24, 'mobileDistance' => 16, 'easing' => 'ease-out-soft'];
 $distance = transform_content($original, [array_merge($entry, ['config' => $motion])]);
-$check(str_contains($distance, 'data-anfb-distance="24"') && str_contains($distance, 'data-anfb-distance-mobile="16"'), 'Responsive distance not saved.');
+$check(str_contains(do_blocks($distance), 'data-anfb-distance="24"') && str_contains(do_blocks($distance), 'data-anfb-distance-mobile="16"'), 'Responsive distance not rendered.');
 $conditional = transform_content($distance, [array_merge($entry, ['config' => array_merge($motion, ['pageIds' => [123]])])]);
 $check(!str_contains($conditional, 'data-aos='), 'Conditional entry leaked into saved HTML.');
 $reject(fn() => wsd\anfb\validate_entry(array_merge($motion, ['distance' => -1])), 'Negative distance accepted.');
@@ -123,13 +124,14 @@ wsd\anfb\resolve_provider($tree);
 $check($tree['innerBlocks'][0]['attrs']['animationsForBlocks']['delay'] === 100 && $tree['innerBlocks'][1]['attrs']['animationsForBlocks']['delay'] === 0, 'Explicit sequence order ignored.');
 
 $cleared_sequence = parse_blocks(transform_content($sequence, [['path' => [0], 'block' => 'core/group', 'op' => 'clear']]))[0];
-$check(empty($cleared_sequence['attrs']['isAnimationProvider']) && !isset($cleared_sequence['attrs']['animationStagger']), 'Clear retained sequence settings.');
+$check(!isset($cleared_sequence['attrs']['metadata']['anfb']) && empty($cleared_sequence['attrs']['isAnimationProvider']) && !isset($cleared_sequence['attrs']['animationStagger']), 'Clear retained sequence settings.');
 $nested = parse_blocks($provider)[0];
 $nested['innerBlocks'][0]['innerBlocks'] = [parse_blocks($provider)[0]['innerBlocks'][0]];
 wsd\anfb\resolve_provider($nested);
 $check(empty($nested['innerBlocks'][0]['innerBlocks'][0]['attrs']['animationsForBlocks']), 'Nested inherited child received a second entry.');
 $media = '<!-- wp:generateblocks/media {"uniqueId":"motion-test","tagName":"img"} --><img class="gb-media-motion-test" src="https://example.test/image.jpg" /><!-- /wp:generateblocks/media -->';
 $check(inspect_blocks(parse_blocks($media))[0]['editable'], 'GenerateBlocks Media entry adapter unavailable.');
-$check(str_contains(transform_content($media, [['path' => [0], 'block' => 'generateblocks/media', 'op' => 'entry', 'config' => $motion]]), 'data-anfb-distance="24"'), 'Media animation not serialized.');
+$media_result = transform_content($media, [['path' => [0], 'block' => 'generateblocks/media', 'op' => 'entry', 'config' => $motion]]);
+$check(!str_contains($media_result, 'data-anfb-distance=') && str_contains(do_blocks($media_result), 'data-anfb-distance="24"'), 'Media animation must render without changing saved HTML.');
 
 echo "Content checks passed: $checks\n";

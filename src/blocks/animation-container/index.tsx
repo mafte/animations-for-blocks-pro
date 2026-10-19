@@ -1,3 +1,4 @@
+import { animationAttributes } from '../../persistence'
 import * as React from 'react'
 import {__} from '@wordpress/i18n'
 
@@ -50,7 +51,7 @@ export const settings = {
 
 		const {
 			isAnimationProvider = false,
-		} = attributes
+		} = animationAttributes(attributes)
 
 		if(isAnimationProvider) {
 			return __('Animation provider', 'animations-for-blocks')

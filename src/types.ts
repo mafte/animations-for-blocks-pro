@@ -12,7 +12,7 @@ export type {
 
 export type BlockAttributes<T extends object = {}> = Record<string, any> & T
 
-export type AnimationsForBlocksBlockAttributes<T extends object = {}> = BlockAttributes<{animationsForBlocks?: AnimationsForBlocks} & T>
+export type AnimationsForBlocksBlockAttributes<T extends object = {}> = BlockAttributes<{animationsForBlocks?: AnimationsForBlocks, metadata?: Record<string, any> & { anfb?: import('./persistence').AnimationMetadata }} & T>
 
 export interface AnimationsForBlocksBlockContext {
 	/** Is the provider block enabled to provide its' animation. */

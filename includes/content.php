@@ -142,6 +142,7 @@ function inspect_blocks($blocks, $prefix = [], $blocked = false) {
 	foreach ($blocks as $index => $block) {
 		$path = array_merge($prefix, [$index]);
 		$editable = !$blocked && block_editable($block);
+		$settings = animation_attributes($block['attrs'] ?? []);
 		$own_html = implode('', array_filter($block['innerContent'], 'is_string'));
 		$effects = [];
 		$tag = new \WP_HTML_Tag_Processor($own_html);
@@ -155,8 +156,8 @@ function inspect_blocks($blocks, $prefix = [], $blocked = false) {
 			'textEditable' => $editable && block_editable($block, true),
 			'text' => html_entity_decode(wp_strip_all_tags($own_html), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
 			'textNodes' => array_column(text_tokens($own_html), 'text'),
-			'sequence' => ['enabled' => !empty($block['attrs']['isAnimationProvider']), 'interval' => $block['attrs']['animationStagger'] ?? 0],
-			'entry' => $block['attrs']['animationsForBlocks'] ?? null, 'effects' => $effects,
+			'sequence' => ['enabled' => !empty($settings['isAnimationProvider']), 'interval' => $settings['animationStagger'] ?? 0],
+			'entry' => $settings['animationsForBlocks'] ?? null, 'effects' => $effects,
 			'source' => $editable ? null : ['block' => $block['blockName'], 'ref' => $block['attrs']['ref'] ?? null, 'reason' => 'Unregistered, unsupported, dynamic or bound content; edit its source.'],
 			'children' => inspect_blocks($block['innerBlocks'], $path, !$editable),
 		];
@@ -194,7 +195,9 @@ function transform_content($content, $operations) {
 		if (($operation['block'] ?? '') !== $block['blockName']) {
 			throw new \InvalidArgumentException('Block type does not match inspection.');
 		}
+		if (array_key_exists('anfb', $block['attrs']['metadata'] ?? [])) validate_animation_metadata($block['attrs']['metadata']['anfb']);
 		$op = $operation['op'] ?? '';
+		if (!in_array($op, ['text', 'text-remove'], true)) $block['attrs'] = animation_attributes($block['attrs'] ?? []);
 		if ($op === 'sequence') {
 			if (!in_array($block['blockName'], animation_schema()['sequenceBlocks'], true)) throw new \InvalidArgumentException('Unsupported sequence group.');
 			$config = $operation['config'] ?? [];
@@ -202,11 +205,17 @@ function transform_content($content, $operations) {
 			$block['attrs']['isAnimationProvider'] = $config['enabled'];
 			$block['attrs']['animationStagger'] = $config['interval'];
 			foreach ($block['innerBlocks'] as &$child) {
-				if ($config['enabled'] && block_editable($child) && empty($child['attrs']['animationsForBlocks']['animation'])) $child['attrs']['animationsForBlocks'] = ['animation' => 'inherit'];
+				if ($config['enabled'] && block_editable($child)) {
+					$settings = animation_attributes($child['attrs'] ?? []);
+					if (empty($settings['animationsForBlocks']['animation'])) {
+						$settings['animationsForBlocks'] = ['animation' => 'inherit'];
+						$child['attrs'] = store_animation_attributes($settings);
+					}
+				}
 			}
 			unset($child);
 			foreach ($block['innerContent'] as &$chunk) {
-				if (is_string($chunk) && trim($chunk) !== '') { $chunk = sync_entry_html($chunk, $block['attrs']['animationsForBlocks'] ?? [], $config['enabled']); break; }
+				if (is_string($chunk) && trim($chunk) !== '') { $chunk = sync_entry_html($chunk); break; }
 			}
 			unset($chunk);
 		} elseif (in_array($op, ['entry', 'entry-remove'], true)) {
@@ -219,7 +228,7 @@ function transform_content($content, $operations) {
 			$first = true;
 			foreach ($block['innerContent'] as &$chunk) {
 				if (is_string($chunk) && trim($chunk) !== '' && $first) {
-					$chunk = sync_entry_html($chunk, $config, !empty($block['attrs']['isAnimationProvider']));
+					$chunk = sync_entry_html($chunk);
 					$first = false;
 				}
 			}
@@ -253,6 +262,7 @@ function transform_content($content, $operations) {
 		} else {
 			throw new \InvalidArgumentException('Unknown operation.');
 		}
+		if (!in_array($op, ['text', 'text-remove'], true)) $block['attrs'] = store_animation_attributes($block['attrs']);
 		$block['innerHTML'] = implode('', array_filter($block['innerContent'], 'is_string'));
 		unset($block);
 	}

@@ -1,3 +1,4 @@
+import { animationAttributes } from './persistence'
 import {
 	useSelect,
 } from '@wordpress/data'
@@ -5,11 +6,6 @@ import {
 import {
 	store as coreStore,
 } from '@wordpress/core-data'
-
-import {
-	store as blocksStore,
-	// @ts-ignore
-} from '@wordpress/blocks'
 
 import {
 	store as blockEditorStore,
@@ -24,7 +20,6 @@ import {
 
 import type {
 	AnimationsForBlocks,
-	AnimationsForBlocksBlockContext,
 } from './types'
 
 export {
@@ -62,7 +57,7 @@ export const useAnimationConfig = (clientId: string, animationsForBlocks: Animat
 			const getAnimationProvider = (containers: string[]) => {
 				for(const clientId of containers) {
 					const block = select(blockEditorStore).getBlock(clientId)
-					if(block?.attributes?.isAnimationProvider) {
+					if(block && animationAttributes(block.attributes).isAnimationProvider) {
 						return block
 					}
 				}
@@ -74,24 +69,8 @@ export const useAnimationConfig = (clientId: string, animationsForBlocks: Animat
 				return false
 			}
 
-			const blockType = select(blocksStore).getBlockType(block.name)
-			if(!blockType) {
-				return false
-			}
-
-			if(Object.keys(blockType.providesContext).length === 0) {
-				return false
-			}
-
-			const context = Object.fromEntries(
-				Object.entries(blockType.providesContext).map(
-					([contextName, attributeName]) => [contextName, block.attributes[attributeName]]
-				)
-			) as AnimationsForBlocksBlockContext
-
-			const {
-				animationsForBlocksAnimation: providedAnimation = {},
-			} = context
+			const provider = animationAttributes(block.attributes)
+			const providedAnimation = provider.animationsForBlocks || {}
 
 			if(!providedAnimation?.animation || providedAnimation.animation === 'inherit') {
 				return false
@@ -100,17 +79,18 @@ export const useAnimationConfig = (clientId: string, animationsForBlocks: Animat
 
 			const entries: any[] = []
 			const collect = (children: any[]) => children.forEach(child => {
-				if (child.attributes.isAnimationProvider) return
-				const name = child.attributes.animationsForBlocks?.animation
+				const settings = animationAttributes(child.attributes)
+				if (settings.isAnimationProvider) return
+				const name = settings.animationsForBlocks?.animation
 				if (name === 'inherit') { entries.push(child); return }
 				if (!name || name === 'none') collect(child.innerBlocks)
 			})
 			collect(block.innerBlocks)
-			entries.sort((a, b) => (a.attributes.animationsForBlocks?.order ?? 0) - (b.attributes.animationsForBlocks?.order ?? 0))
+			entries.sort((a, b) => (animationAttributes(a.attributes).animationsForBlocks?.order ?? 0) - (animationAttributes(b.attributes).animationsForBlocks?.order ?? 0))
 			const rank = entries.findIndex(entry => entry.clientId === clientId)
 			if (rank < 0) return false
 			const base = providedAnimation.animation === 'default' ? getDefaultAnimation() : providedAnimation
-			return { ...base, delay: Math.min(3000, (base.delay ?? 0) + rank * (block.attributes.animationStagger ?? 0)) }
+			return { ...base, delay: Math.min(3000, (base.delay ?? 0) + rank * (provider.animationStagger ?? 0)) }
 		}
 
 		return false

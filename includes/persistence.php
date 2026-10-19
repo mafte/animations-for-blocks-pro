@@ -3,26 +3,44 @@ namespace wsd\anfb;
 
 defined('ABSPATH') || exit;
 
+function validate_animation_metadata($data) {
+	if (!is_array($data) || ($data['version'] ?? null) !== 1 || array_diff(array_keys($data), ['version', 'entry', 'sequence'])) {
+		throw new \InvalidArgumentException('Unknown or invalid animation metadata; content was not changed.');
+	}
+	if (array_key_exists('entry', $data)) validate_entry($data['entry']);
+	if (array_key_exists('sequence', $data)) {
+		$sequence = $data['sequence'];
+		if (!is_array($sequence) || array_diff(array_keys($sequence), ['enabled', 'interval']) || !is_bool($sequence['enabled'] ?? null) || !is_int($sequence['interval'] ?? null) || $sequence['interval'] < 0 || $sequence['interval'] > 1000 || $sequence['interval'] % 50 !== 0) {
+			throw new \InvalidArgumentException('Invalid animation sequence metadata.');
+		}
+	}
+}
+
 /** Runtime aliases keep existing render hooks and sequence contexts compatible. */
 function animation_attributes($attrs) {
-	if (!array_key_exists('anfb', $attrs['metadata'] ?? [])) return $attrs;
+	if (!is_array($attrs['metadata'] ?? []) || !array_key_exists('anfb', $attrs['metadata'] ?? [])) return $attrs;
 	$data = $attrs['metadata']['anfb'];
 	unset($attrs['animationsForBlocks'], $attrs['isAnimationProvider'], $attrs['animationStagger']);
-	if (!is_array($data) || ($data['version'] ?? null) !== 1) return $attrs;
-	if (is_array($data['entry'] ?? null)) $attrs['animationsForBlocks'] = $data['entry'];
-	if (is_array($data['sequence'] ?? null)) {
-		$attrs['isAnimationProvider'] = $data['sequence']['enabled'] ?? false;
-		$attrs['animationStagger'] = $data['sequence']['interval'] ?? 0;
+	try { validate_animation_metadata($data); } catch (\InvalidArgumentException $e) { return $attrs; }
+	if (isset($data['entry'])) $attrs['animationsForBlocks'] = $data['entry'];
+	if (isset($data['sequence'])) {
+		$attrs['isAnimationProvider'] = $data['sequence']['enabled'];
+		$attrs['animationStagger'] = $data['sequence']['interval'];
 	}
 	return $attrs;
 }
 
 function store_animation_attributes($attrs) {
-	if (isset($attrs['metadata']['anfb']) && ($attrs['metadata']['anfb']['version'] ?? null) !== 1) {
-		throw new \InvalidArgumentException('Unknown animation metadata version; content was not changed.');
-	}
+	if (isset($attrs['metadata']) && !is_array($attrs['metadata'])) throw new \InvalidArgumentException('Block metadata must be an object.');
+	if (array_key_exists('anfb', $attrs['metadata'] ?? [])) validate_animation_metadata($attrs['metadata']['anfb']);
+	if (isset($attrs['isAnimationProvider']) && !is_bool($attrs['isAnimationProvider'])) throw new \InvalidArgumentException('Sequence enabled must be boolean.');
+	if (isset($attrs['animationStagger']) && !is_int($attrs['animationStagger'])) throw new \InvalidArgumentException('Sequence interval must be an integer.');
 	$data = ['version' => 1];
-	if (!empty($attrs['animationsForBlocks'])) $data['entry'] = validate_entry($attrs['animationsForBlocks']);
+	if (!empty($attrs['animationsForBlocks'])) {
+		$entry = $attrs['animationsForBlocks'];
+		if (is_array($entry) && empty($entry['animation'])) $entry['animation'] = 'none';
+		$data['entry'] = validate_entry($entry);
+	}
 	if (!empty($attrs['isAnimationProvider']) || !empty($attrs['animationStagger'])) {
 		$data['sequence'] = ['enabled' => !empty($attrs['isAnimationProvider']), 'interval' => $attrs['animationStagger'] ?? 0];
 	}

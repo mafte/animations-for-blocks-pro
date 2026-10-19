@@ -46,7 +46,7 @@ const fs = require('node:fs')
 		await animationGroup.getByRole('button', { name: 'Curtain', exact: true }).focus()
 		await page.keyboard.press('Enter')
 		await panel.getByRole('group', { name: 'Animation variation', exact: true }).getByRole('button', { name: 'Left', exact: true }).click()
-		assert.equal(await page.evaluate(() => wp.data.select('core/block-editor').getSelectedBlock().attributes.animationsForBlocks.variation), 'left')
+		assert.equal(await page.evaluate(() => (wp.data.select('core/block-editor').getSelectedBlock().attributes.metadata?.anfb?.entry || wp.data.select('core/block-editor').getSelectedBlock().attributes.animationsForBlocks).variation), 'left')
 		await page.screenshot({ path: '/private/tmp/anfb-entry-controls.png' })
 		await panel.getByRole('button', { name: 'More actions', exact: true }).click()
 		await page.getByRole('menuitem', { name: 'Settings', exact: true }).click()
@@ -110,7 +110,7 @@ const fs = require('node:fs')
 			const heading = blocks[0]
 			const headingValue = wp.richText.create({ html: heading.attributes.content })
 			const headingNext = wp.richText.applyFormat(headingValue, { type: 'anfb/text', attributes: { config: JSON.stringify({ effect: 'words', duration: 400, delay: 0 }) } }, 0, headingValue.text.length)
-			editor.updateBlockAttributes(heading.clientId, { content: wp.richText.toHTMLString({ value: headingNext }), animationsForBlocks: { animation: 'fade', variation: 'up', duration: 400, once: true } })
+			editor.updateBlockAttributes(heading.clientId, { content: wp.richText.toHTMLString({ value: headingNext }), animationsForBlocks: undefined, metadata: { ...heading.attributes.metadata, anfb: { ...heading.attributes.metadata?.anfb, version: 1, entry: { animation: 'fade', variation: 'up', duration: 400, once: true } } } })
 			const gb = blocks[2]
 			const gbValue = wp.richText.create({ html: gb.attributes.content })
 			const gbNext = wp.richText.applyFormat(gbValue, { type: 'anfb/text', attributes: { config: JSON.stringify({ effect: 'typing', duration: 400, delay: 0, cursor: true }) } }, 0, gbValue.text.length)
@@ -121,7 +121,7 @@ const fs = require('node:fs')
 		await page.waitForFunction(() => window.wp?.data?.select('core/block-editor')?.getBlocks()?.length)
 		const saved = await page.evaluate(() => {
 			const blocks = wp.data.select('core/block-editor').getBlocks()
-			return { valid: blocks[0].innerBlocks.every(block => block.isValid !== false), sequence: blocks[0].attributes.isAnimationProvider && blocks[0].attributes.animationStagger === 100, content: wp.data.select('core/editor').getEditedPostContent() }
+			return { valid: blocks[0].innerBlocks.every(block => block.isValid !== false), sequence: (blocks[0].attributes.metadata?.anfb?.sequence?.enabled ?? blocks[0].attributes.isAnimationProvider) && (blocks[0].attributes.metadata?.anfb?.sequence?.interval ?? blocks[0].attributes.animationStagger) === 100, content: wp.data.select('core/editor').getEditedPostContent() }
 		})
 		assert(saved.valid, 'Editor reloaded invalid blocks')
 		assert(saved.sequence, 'Sequence settings did not survive save/reload')
