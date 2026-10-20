@@ -2,8 +2,9 @@
 import hashlib,json,os,shlex,subprocess,tempfile
 from pathlib import Path
 site=os.environ['ANFB_WP_PATH']
+admin=os.environ.get('ANFB_TEST_USER','1')
 cli=shlex.split(os.environ.get('ANFB_WP_CLI','wp'))+['--path='+site]
-def run(*args,ok=True,user='1'):
+def run(*args,ok=True,user=admin):
     result=subprocess.run(cli+(['--user='+user] if user else [])+list(args),text=True,capture_output=True)
     if ok and result.returncode: raise AssertionError(result.stderr+result.stdout)
     if not ok: assert result.returncode!=0,(args,result.stdout)

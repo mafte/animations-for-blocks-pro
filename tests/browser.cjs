@@ -14,12 +14,17 @@ const fs = require('node:fs')
 		page.setDefaultNavigationTimeout(30000)
 		const errors = []
 		page.on('pageerror', error => { errors.push(error.message); console.error('Page error:', error.message) })
-		await page.goto(base + '/wp-login.php')
-		// WordPress focuses the username after a 200 ms timeout on the login page.
-		await page.waitForTimeout(250)
-		await page.locator('#user_login').fill('anfb-test')
-		await page.locator('#user_pass').fill('anfb-local-tests-only')
-		await Promise.all([page.waitForURL(/wp-admin/), page.locator('#wp-submit').click()])
+		if (process.env.ANFB_TEST_LOGIN_URL) {
+			await page.goto(process.env.ANFB_TEST_LOGIN_URL)
+			await page.waitForURL(/wp-admin/)
+		} else {
+			await page.goto(base + '/wp-login.php')
+			// WordPress focuses the username after a 200 ms timeout on the login page.
+			await page.waitForTimeout(250)
+			await page.locator('#user_login').fill('anfb-test')
+			await page.locator('#user_pass').fill('anfb-local-tests-only')
+			await Promise.all([page.waitForURL(/wp-admin/), page.locator('#wp-submit').click()])
+		}
 		await page.goto(base + '/wp-admin/post.php?post=' + post + '&action=edit')
 		await page.waitForFunction(() => window.wp?.data?.select('core/editor')?.getCurrentPostId())
 		await page.waitForFunction(() => window.wp?.data?.select('core/rich-text')?.getFormatType('anfb/text'))
@@ -37,6 +42,8 @@ const fs = require('node:fs')
 			wp.data.dispatch('core/block-editor').selectBlock(wp.data.select('core/block-editor').getBlocks()[0].clientId)
 		})
 		const panel = page.locator('.wsd-anfb.components-panel')
+		const advancedPanel = page.getByRole('button', { name: 'Advanced', exact: true })
+		if (!await panel.count() && await advancedPanel.count()) await advancedPanel.click()
 		await panel.getByRole('button', { name: 'Sequence', exact: true }).click()
 		await panel.getByLabel('Provide animation to children', { exact: true }).check()
 		await panel.getByLabel('Interval (ms)', { exact: true }).fill('100')
@@ -128,10 +135,25 @@ const fs = require('node:fs')
 		assert(saved.content.includes('data-anfb='))
 		await page.waitForTimeout(600)
 		await page.screenshot({ path: '/private/tmp/anfb-editor.png', fullPage: false })
+		const aosResponses = []
+		page.on('response', response => {
+			const path = new URL(response.url()).pathname
+			if (/\/build\/(aos\.js|init\.js|aos\.css)$/.test(path)) aosResponses.push({ path, status: response.status(), url: response.url() })
+		})
 		await page.goto(base + '/?page_id=' + post)
 		await page.locator('span.anfb-text').first().waitFor()
 		await page.waitForFunction(() => !!document.querySelector('.anfb-text-source'), null, { timeout: 2000 })
 		await page.waitForTimeout(1600)
+		for (const file of ['aos.js', 'init.js', 'aos.css']) {
+			const responses = aosResponses.filter(response => response.path.endsWith('/' + file))
+			assert.equal(responses.length, 1, `Expected exactly one HTTP response for ${file}`)
+			assert.equal(responses[0].status, 200, `${file} returned HTTP ${responses[0].status}`)
+		}
+		const waterfall = await page.evaluate(() => performance.getEntriesByType('resource')
+			.filter(entry => /\/build\/(aos\.js|init\.js|aos\.css)$/.test(new URL(entry.name).pathname))
+			.map(({name, initiatorType, startTime, responseEnd, duration, transferSize, encodedBodySize, decodedBodySize}) => ({name, initiatorType, startTime, responseEnd, duration, transferSize, encodedBodySize, decodedBodySize})))
+		assert.equal(waterfall.length, 3, 'Expected one browser resource entry for each AOS asset')
+		fs.writeFileSync('/private/tmp/anfb-aos-waterfall.json', JSON.stringify({responses: aosResponses, resources: waterfall}, null, 2))
 		assert.equal(await page.locator('.anfb-text-source').count(), 0, 'Temporary animation markup survived completion')
 		assert((await page.locator('body').innerText()).includes('1.250,50'))
 		assert.equal(await page.locator('script[src*="build/text.js"]').count(), 1)

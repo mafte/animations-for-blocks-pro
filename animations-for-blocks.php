@@ -226,7 +226,7 @@ function register_assets() {
 	$options = get_option('animations-for-blocks');
 
 	/** @var array */
-	$asset = include WSD_ANFB_DIR . '/build/index.asset.php';
+	$aos_asset = include WSD_ANFB_DIR . '/build/aos.asset.php';
 
 	wp_register_style(
 		WSD_ANFB_AOS_HANDLE,
@@ -243,7 +243,7 @@ function register_assets() {
 		WSD_ANFB_AOS_HANDLE,
 		plugins_url('build/aos.js', WSD_ANFB_FILE),
 		[],
-		$asset['version'], // 3.0.0-beta.6
+		$aos_asset['version'],
 		['in_footer' => true, 'strategy' => 'defer']
 	);
 

@@ -84,15 +84,15 @@
 ## 09 — Corregir caché y comprobar carga
 
 - [x] `build/aos.asset.php` cambió su hash de versión al cambiar el motor y el build repetido conservó hashes idénticos.
-- [ ] Carga y waterfall en WordPress: no hay sitio desechable habilitado. Se revisaron en código las ramas sin entradas/texto, herencia, Lenis, `lazyloadAssets`, filtros y AOS externo; ejecución HTTP pendiente.
+- [x] WordPress/Akumbele: carga diferida sin animación, primer bloque animado, modo eager, filtros y Lenis pasan en procesos WP-CLI separados; Gutenberg/frontend obtuvo un único HTTP 200 para AOS JS, init y CSS. El handle AOS ahora toma su versión de `aos.asset.php` (la prueba encontró que usaba `index.asset.php`).
 - [x] Se mantienen handles, dependencias, chunks, `defer`, CSS inicial y liberación del contenido; no se añaden solicitudes.
 
 **Verificar:** php -l en PHP modificado; nuevo wp --path=RUTA_DESECHABLE --user=1 eval-file tests/aos-assets.php por escenarios/procesos separados; npm run test:browser y waterfall. **Depende:** 08. **Archivos:** animations-for-blocks.php, tests/aos-assets.php, tests/fixture.php, tests/browser.cjs, docs/aos-evaluation.md; build si cambia fuente. **Tamaño:** M.
 
 ### Checkpoint D — CSS y recursos
 
-- [ ] CSS computado/fotogramas equivalentes; motor externo, caché y carga comprobados en WordPress desechable.
-- [ ] Revisar ahorro total y regresiones superiores al 10%; compatibilidad antes de ahorro de bytes.
+- [x] CSS computado/fotogramas equivalentes en Chromium; cache-busting y carga comprobados en Akumbele. El filtro de carga se probó en PHP; navegador de host externo no añadido.
+- [x] Revisados ahorro total y regresiones: sin regresión de contrato; pruebas locales y waterfall HTTP integrados correctos.
 
 ## 10 — Concluir alternativas modernas
 
@@ -104,26 +104,26 @@
 
 ## 11 — Aceptación integrada
 
-- [x] Contratos en Chromium; `php -l` con PHP 8.1.29. Firefox/Safari no están instalados y no hay sitio desechable para registrar la versión real de WordPress/GenerateBlocks.
-- [ ] Gutenberg y frontend integrado: preview/guardar/reabrir/contenido heredado, móvil/reducido/sin JS/fallo, Lenis y AOS externo requieren el sitio desechable pendiente.
-- [x] No se ejecutaron fixtures que escriban contenido sin `ANFB_TEST_SITE`; los casos no ejecutados quedan explícitamente pendientes.
+- [x] Contratos en Chromium y sintaxis PHP; integración real en Akumbele, WordPress 7.1.3, PHP 8.4.4 y GenerateBlocks 2.5.0.
+- [x] Gutenberg/frontend: preview, guardar/reabrir, contenido heredado, móvil, movimiento reducido, sin JS, fallo de init y captura de waterfall HTTP.
+- [x] Las fixtures se ejecutaron con autorización explícita en Akumbele; el guard `ANFB_TEST_SITE` se cargó solo en procesos WP-CLI, sin cambiar `wp-config.php`.
 
 **Verificar:** comandos de spec/plan con rutas y resultados reales; contratos --browser firefox y --browser webkit si disponibles; Safari real aparte; revisar capturas/fotogramas. **Depende:** 10 y cambios aceptados de 05–09. **Archivos:** docs/aos-evaluation.md, tests/browser.cjs, tests/aos-browser.cjs si quedan huecos; no introducir lógica nueva de producción en aceptación. **Tamaño:** M.
 
 ### Checkpoint E — Compatibilidad demostrada
 
 - [x] Pruebas locales ejecutables correctas; límites de navegador y de integración señalados.
-- [ ] Revisar visualmente Gutenberg/frontend en sitio desechable antes de cerrar aceptación.
+- [x] Revisar capturas de Gutenberg/frontend en Chrome; la fixture se eliminó tras la verificación.
 
 ## 12 — Informe y distribución
 
 - [x] Tabla antes/después, muestras privadas enlazadas, decisiones/metas, ruido y límites documentados.
 - [x] MIT conservada, parche reproducible, instalación congelada, build generado y diff revisado.
-- [x] Recomendación preparada sin merge/publicación/despliegue; integración WP sigue pendiente de un sitio de prueba autorizado.
+- [x] Recomendación y evidencia integrada preparadas; sin merge/publicación/despliegue.
 
 **Verificar:** instalación congelada, npm test, npm run build, php -l pertinente, git diff --check y segunda compilación sin diferencias inesperadas; revisión completa. **Depende:** checkpoint E. **Archivos:** docs/aos-evaluation.md, docs/upstream.md, docs/testing.md, docs/development.md si cambia mantenimiento; build generado. **Tamaño:** M.
 
 ### Checkpoint final — Entrega para revisión
 
 - [x] Commits creados; parche/lock/fuentes/build coherentes e informe/resultados disponibles.
-- [x] Trabajo ajeno y páginas originales conservados; recomendación lista para revisión humana con la integración WordPress pendiente identificada.
+- [x] Trabajo ajeno y páginas originales conservados; copia temporal retirada y estado original del plugin restaurado.

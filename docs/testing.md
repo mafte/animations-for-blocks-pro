@@ -19,12 +19,17 @@ Las pruebas de integración requieren un WordPress desechable, con GenerateBlock
 
 ```sh
 wp --path=/sitio/desechable --user=1 eval-file tests/content.php
-ANFB_WP_PATH=/sitio/desechable ANFB_WP_CLI=wp python3 tests/cli.py
+ANFB_AOS_SCENARIO=lazy-empty wp --path=/sitio/desechable --user=1 eval-file tests/aos-assets.php
+ANFB_AOS_SCENARIO=lazy-animated wp --path=/sitio/desechable --user=1 eval-file tests/aos-assets.php
+ANFB_AOS_SCENARIO=eager wp --path=/sitio/desechable --user=1 eval-file tests/aos-assets.php
+ANFB_AOS_SCENARIO=filtered wp --path=/sitio/desechable --user=1 eval-file tests/aos-assets.php
+ANFB_AOS_SCENARIO=lenis wp --path=/sitio/desechable --user=1 eval-file tests/aos-assets.php
+ANFB_WP_PATH=/sitio/desechable ANFB_WP_CLI=wp ANFB_TEST_USER=1 python3 tests/cli.py
 wp --path=/sitio/desechable --user=1 eval-file tests/fixture.php
 ANFB_TEST_URL=http://127.0.0.1:8765 ANFB_TEST_POST=ID_DEVUELTO npm run test:browser
 ```
 
-La prueba CLI crea y elimina una página y un usuario de prueba; usa copias temporales privadas. La fixture de navegador crea una página publicada `ANFB acceptance fixture`. La prueba de navegador espera el usuario `anfb-test`, contraseña `anfb-local-tests-only`, y Chrome en su ruta macOS habitual (sobrescribible con `CHROME_PATH`). Estas credenciales son solo para el sitio desechable.
+Ejecuta cada escenario de `tests/aos-assets.php` en un proceso WP-CLI separado porque el renderizador mantiene un guard estático por solicitud. La prueba CLI crea y elimina una página y un usuario de prueba; usa copias temporales privadas. `ANFB_TEST_USER` permite indicar el ID del administrador si no es `1`. La fixture de navegador crea una página publicada `ANFB acceptance fixture`. Por omisión, la prueba de navegador espera el usuario `anfb-test`, contraseña `anfb-local-tests-only`, y Chrome en su ruta macOS habitual (sobrescribible con `CHROME_PATH`). Para un Local aislado también puede usarse `ANFB_TEST_LOGIN_URL` con su inicio de sesión automático de administrador; esa URL no debe compartirse. Estas credenciales y URLs son solo para el sitio de prueba.
 
 La prueba de navegador guarda efectos, vuelve a abrir el editor y comprueba escritorio, móvil, movimiento reducido y JavaScript desactivado. Las capturas quedan en `/private/tmp/anfb-{editor,desktop,mobile}.png`. Tras verificar, restaurar la fixture con su copia original o eliminar el sitio desechable.
 

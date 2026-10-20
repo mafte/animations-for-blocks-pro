@@ -2,7 +2,7 @@
 
 [Especificación aprobada](../SPEC-aos-optimization.md), 2026-10-20. Rama: `codex/aos-optimization`. Base: master `b59ecb3867c7d1f7bd398bc3d41cfefc52e27a42`.
 
-**Estado:** ejecución en curso; checkpoints A y B revisados por el usuario. Lista única: [todo.md](todo.md). El trabajo anterior estaba completado y se conserva íntegro en [archive/safe-deactivation-2026-10-19](archive/safe-deactivation-2026-10-19/plan.md).
+**Estado:** implementación y aceptación local completadas; lista única: [todo.md](todo.md). Integración probada en Akumbele con autorización del usuario; los límites de matriz/navegadores siguen documentados. Sin merge ni publicación. El trabajo anterior está completo y se conserva íntegro en [archive/safe-deactivation-2026-10-19](archive/safe-deactivation-2026-10-19/plan.md).
 
 ## Enfoque y decisiones
 
