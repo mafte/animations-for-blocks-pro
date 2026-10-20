@@ -34,20 +34,37 @@ Copia de control en `/private/tmp/anfb-aosio-evaluation/control/`, extraída del
 
 Los comandos de línea base se ejecutaron en el snapshot temporal. La prueba de humo se ejecutó en Chromium `154.0.8037.98`, con AOS control, AOSIO upstream y los bundles reales del plugin. Cada motor animó todos los elementos y emitió entradas en los casos de 20, 100 y 500, con visibilidad final correcta. Los tiempos brutos fixture-a-init fueron control 33/35/40 ms, AOSIO upstream 40/35/39 ms y plugin con AOSIO 32/31/37 ms. No son mediciones comparativas de rendimiento: no aíslan inicialización, incluyen la fixture y tienen una sola corrida. JSON: `/private/tmp/anfb-aosio-evaluation/results/smoke.json`.
 
+Payload por archivo de la misma compilación, raw/gzip (Node `zlib.gzipSync`):
+
+| Recurso | AOS control | AOSIO plugin | Diferencia gzip |
+| --- | ---: | ---: | ---: |
+| `aos.js` | 13,686 / 4,845 B | 6,713 / 2,554 B | −47.3% |
+| `init.js` | 2,512 / 1,257 B | 2,414 / 1,206 B | −4.1% |
+| `aos.css` | 31,380 / 2,884 B | 11,449 / 1,360 B | −52.8% |
+| `editor.css` | 46,072 / 3,919 B | 26,452 / 2,625 B | −33.0% |
+
+El conjunto frontend `aos.js + init.js` baja de 6,102 a 3,760 bytes gzip (−38.4%). Es menos transferencia; no demuestra menos CPU ni mejor frame rate.
+
 El código del plugin incorpora ahora una copia privada de `src/js/` y `src/sass/` del ZIP bajo `vendor/aosio/`; ver [procedencia](../vendor/aosio/PROVENANCE.md). La entrada usa el motor y el CSS de AOSIO; AOS antiguo se retiró de `package.json`/lockfile. Si falta IntersectionObserver, la entrada revela el contenido.
 
 `node tests/aos-css.cjs` valida en Chromium 154 las 37 variantes del esquema, estados iniciales/finales de preview, las 21 curvas, duración/retraso y distancias desktop/móvil. Los overrides conservan Scale/Curtain, curvas y preview Gutenberg; los hallazgos de especificidad están reflejados en `src/aos-custom.scss` y `src/style-compat.scss`.
 
 `tests/aos-engine.cjs` valida carga de bundles, clases, eventos, visibilidad y nodos dinámicos para 20/100/500. El ZIP no observa un elemento agregado por `refreshHard()` si no cambia la altura de ventana; `vendor/aosio/src/js/aosio-core.js` contiene un parche de una línea. AOS y el plugin animan y emiten evento para el nodo dinámico; el ZIP original lo deja oculto en los tres tamaños.
 
-`tests/aos-anchors.cjs` contrasta las nueve posiciones con viewport de 600 px, elemento de 100 px y offset 20. El AOS de control dispara dentro de 4–12 px del punto esperado; el ZIP y el plugin presentan: `top-bottom` +100 px, `center-bottom` +100/102, `bottom-bottom` 0/+2, `top-center` +62/+60, `center-center` sin disparo, `bottom-center` −40, `top-top` +60/+62, `center-top` sin disparo y `bottom-top` −40. Es una sola geometría; la diferencia excede el ruido base en seis puntos y los dos disparos ausentes son fallos claros.
+`tests/aos-anchors.cjs` contrasta las nueve posiciones con viewport de 600 px, elemento de 100 px y offset 20. El AOS de control dispara dentro de 4–12 px del punto esperado; el ZIP y el plugin presentan: `top-bottom` +100 px, `center-bottom` +100/102, `bottom-bottom` 0/+2, `top-center` +62/+60, `center-center` sin disparo, `bottom-center` −40, `top-top` +60/+62, `center-top` sin disparo y `bottom-top` −40. Es una sola geometría: seis puntos exceden 5 px, dos no disparan y `bottom-bottom` queda dentro de tolerancia.
 
 `tests/aos-api.cjs` muestra que ambas combinaciones con `once=true` coinciden; `once=false, mirror=false` diverge porque el fork no quita la clase al salir hacia arriba; con `mirror=true`, ambos quitan la clase, pero el control actual emite `aos:in:probe` al salir y AOSIO emite `aos:out:probe`. Scroll/API restante, WordPress/Gutenberg real, fallos de carga, texto/secuencias/Lenis y benchmark formal siguen pendientes.
 
 `node tests/aos-fallback.cjs` también pasa en Chromium 154 para movimiento reducido, JavaScript apagado y `IntersectionObserver` ausente: el bloque termina visible. El caso de recurso bloqueado/excepción, carga condicionada y WordPress/Gutenberg real no se pudo validar en una instalación porque `ANFB_TEST_SITE` no está habilitado.
 
+## Recomendación
+
+No sustituir AOS por AOSIO en el plugin en su estado actual. Aunque reduce notablemente los bundles, seis de nueve puntos de activación exceden la tolerancia en la geometría probada, dos anclajes no disparan, cambia el comportamiento `once=false, mirror=false` y difiere en eventos por ID. Además necesita el parche local de `refreshHard()`. Corregir la geometría requiere cambiar la lógica de observación, fuera de una sustitución directa.
+
+Por esos fallos no se ejecutó el benchmark formal de CPU/frames ni la integración WP/Lenis. Sigue sin comprobarse la matriz completa de contenido dinámico, Gutenberg real, secuencias/texto/CLI, recurso bloqueado, WordPress 6.6/PHP 8.1 o navegadores distintos de Chromium 154. La conclusión es negativa para sustitución directa; no equivale a certificar compatibilidad completa.
+
 ## Alcance aún no comprobado
 
-No se afirma compatibilidad completa con Gutenberg, secuencias, texto, Lenis, movimiento reducido, fallos de carga, contenido legado, CLI, WordPress/PHP mínimos ni navegadores. Tampoco se ha medido rendimiento formal. La prueba de humo verifica únicamente inicialización, clases/eventos y visibilidad en Chromium.
+No se afirma compatibilidad completa con Gutenberg real, secuencias, texto, Lenis, fallos de carga, contenido legado, CLI, WordPress/PHP mínimos ni navegadores. Movimiento reducido, JavaScript apagado e IntersectionObserver ausente sí se comprobaron en el fixture de Chromium. Tampoco se ha medido rendimiento formal.
 
 La evaluación técnica continúa por autorización del usuario para esta rama privada. Antes de publicar, fusionar o redistribuir el plugin con AOSIO, debe aclararse que el titular concede los derechos necesarios; hasta entonces mantener el cambio en esta rama local.

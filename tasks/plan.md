@@ -39,6 +39,8 @@ T1 Procedencia y entorno
 
 T1 puede conducir directamente a T9 si procedencia/licencia/build impiden integrar. T5 y T6 tienen verificaciones independientes pero comparten fixture/bootstrap: ejecutar secuencialmente. T8 espera una integración estable; cualquier corrección posterior invalida las mediciones afectadas. No se necesita delegación.
 
+Checkpoint C también puede producir una recomendación negativa temprana si el contrato central falla de forma reproducible. En esa ruta, T7 y el benchmark formal T8 quedan pendientes explícitos; el informe puede comparar el tamaño de recursos, pero no afirmar mejoras de CPU o fluidez.
+
 ## Comandos y evidencia
 Comandos existentes: `corepack pnpm install --frozen-lockfile`, `npm test`, `npm run build` y lint PHP; integración conforme a la spec y `docs/testing.md`: `tests/content.php`, `tests/persistence.php`, `tests/migration.php`, `tests/cli.py`, fixture y `npm run test:browser`. Solo sitios desechables con `ANFB_TEST_SITE=true`; nunca instalaciones de clientes.
 

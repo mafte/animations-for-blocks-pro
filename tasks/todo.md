@@ -69,11 +69,11 @@ Trabajo anterior completo: [archivo preservado](completed/2026-10-19-wordpress-a
 **Descripción:** Contrastar geometría, eventos/opciones y cambios dinámicos, documentando divergencias del fork.
 
 **Acceptance criteria:**
-- [x] Nueve anclajes muestreados con un elemento de 100 px, viewport 600 px y offset 20. AOSIO y el plugin fallan reproduciblemente en 7/9 puntos; dos no se disparan. Variantes geométricas/resize pendientes.
+- [x] Nueve anclajes muestreados con un elemento de 100 px, viewport 600 px y offset 20. Seis puntos exceden 5 px; dos no se disparan; uno queda dentro de tolerancia. Variantes geométricas/resize pendientes.
 - [x] Combinaciones básicas `once`/`mirror` y eventos globales/ID contrastados; AOSIO diverge cuando `once=false, mirror=false` y usa `aos:out:probe` donde el control actual emite `aos:in:probe` al salir. `anchor` externo y resto de API públicos siguen pendientes.
 - [x] Inserción dinámica con altura de viewport sin cambios falla en AOSIO upstream y pasa en control/candidato del plugin; adaptación y evidencia están registradas. Eliminación, refresh repetidos y fuga/reposo siguen pendientes.
 
-**Verification:** `tests/aos-engine.cjs`, `tests/aos-anchors.cjs`, `tests/aos-api.cjs` con Chromium 154. Datos privados: `/private/tmp/anfb-aosio-evaluation/results/{smoke,anchors,api}.json` (logs `.log` para API). Anclajes y `once`/`mirror` muestran incompatibilidades; API completa y reposo pendientes.
+**Verification:** `tests/aos-engine.cjs`, `tests/aos-anchors.cjs`, `tests/aos-api.cjs` con Chromium 154. Datos privados: `/private/tmp/anfb-aosio-evaluation/results/smoke.json`, `anchors.json` y `api.log`. Anclajes y `once`/`mirror` muestran incompatibilidades; API completa y reposo pendientes.
 **Dependencies:** Checkpoint B.
 **Files likely touched:** `tests/aos-engine.cjs`, `tests/aos-engine.html`, `src/init.js` si se necesita adaptación, `docs/aosio-evaluation.md`.
 **Estimated scope:** Medium, hasta 4 archivos.
@@ -93,9 +93,9 @@ Trabajo anterior completo: [archivo preservado](completed/2026-10-19-wordpress-a
 **Estimated scope:** Medium, hasta 5 fuentes; bundles regenerados cuando corresponda.
 
 ## Checkpoint C: Motor
-- [ ] Matriz scroll/API/visibilidad con evidencia y comparación con fallos previos.
-- [ ] Regresión de acceso al contenido o adaptación extensa impide recomendar sustitución directa.
-- [ ] Tests/build correctos o fallo concreto registrado para recomendación negativa.
+- [x] Matriz parcial de scroll/API/visibilidad con evidencia; seis anclajes exceden 5 px, dos no disparan; once/mirror y eventos por ID registrados.
+- [x] Regresiones impiden recomendar sustitución directa; corregir los anclajes requiere cambiar la lógica del observador.
+- [x] Tests/build pasan; los fallos funcionales son reproducibles. Integración WP real sigue sin verificar.
 
 ## T7: Validar WordPress completo
 **Descripción:** Ejecutar integración real en sitios desechables: edición/persistencia, secuencias y texto dentro de ancestros animados.
@@ -114,12 +114,13 @@ Trabajo anterior completo: [archivo preservado](completed/2026-10-19-wordpress-a
 **Descripción:** Medir control/fork y candidato adaptado si existe, con integración estable y condiciones iguales.
 
 **Acceptance criteria:**
-- [ ] 20/100/500 elementos: calentamiento y >=5 medidas por motor/escenario alternadas; configuración/contenido/hashes registrados.
+- [ ] Benchmark de runtime 20/100/500: calentamiento y >=5 medidas por motor/escenario alternadas; se detiene tras Checkpoint C. El smoke no cuenta como benchmark.
+- [x] Payloads JS/CSS/editor raw y gzip comparados en la misma compilación; tamaños quedan en el informe.
 - [ ] Inicio, scripting/layout, tareas largas, p95/frames largos, tamaño bytes/gzip y reposo con medianas/dispersión y datos brutos; cero inferencias sobre batería.
 - [ ] Aislamiento contrastado en WP y Lenis aparte; mejora >=20% y regresiones >10% valoradas contra variación, incluidos resultados negativos/inconclusos.
 
 **Verification:** Runner benchmark y trazas con parámetros registrados; validar unidades/estadísticas; repetir solo corridas inválidas justificadas. Métricas no comparables quedan pendientes; correcciones posteriores invalidan medidas afectadas.
-**Dependencies:** T7.
+**Dependencies:** Checkpoint C; el benchmark de runtime no se ejecutó por incompatibilidades funcionales.
 **Files likely touched:** `tests/aos-engine.cjs`, `docs/aosio-evaluation.md`; JSON/trazas privados con reproducción documentada.
 **Estimated scope:** Small, hasta 2 archivos de entrega.
 
@@ -132,14 +133,14 @@ Trabajo anterior completo: [archivo preservado](completed/2026-10-19-wordpress-a
 **Descripción:** Consolidar resultados y distribución revisable; comprobar retorno al control sin tocar trabajo previo.
 
 **Acceptance criteria:**
-- [ ] Informe con SHA/licencia, comandos reales, línea base, matriz, adaptaciones y métricas.
-- [ ] Recomendación completa después de T2–T8; sin publicación ni cambios en instalaciones existentes.
+- [x] Informe con SHA/licencia, comandos reales, línea base, matriz parcial, adaptación, payload y pendientes.
+- [x] Recomendación negativa de sustitución directa; sin publicación ni cambios en instalaciones existentes.
 
 **Verification:** Revisar diff/Definition of Done; artefactos corresponden a última corrida válida. Repetir checks solo por cambios posteriores; instalar desde lock y volver al control en copias distintas. Revisión humana de resultados antes de adoptar.
-**Dependencies:** Checkpoint D; se completa en la ruta de bloqueo de T1 sin afirmar compatibilidad ni mejora de rendimiento.
+**Dependencies:** Checkpoint C permite la recomendación negativa temprana; T7 y benchmark formal T8 quedan pendientes.
 **Files likely touched:** `docs/aosio-evaluation.md`, `docs/testing.md`, `tasks/todo.md`; revisión final de generados por grupos <=5, sin edición manual.
 **Estimated scope:** Medium, 3 archivos de documentación/estado más revisión de distribución.
 
 ## Checkpoint final
-- [ ] Evidencia de compatibilidad y rendimiento revisada; los pendientes impiden afirmar compatibilidad completa.
-- [ ] Recomendación final y límite de distribución documentados.
+- [x] Evidencia parcial de compatibilidad/payload revisada; los pendientes impiden afirmar compatibilidad completa.
+- [x] Recomendación negativa y límite de distribución documentados; no se afirma compatibilidad completa.
