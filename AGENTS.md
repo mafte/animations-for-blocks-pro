@@ -1,4 +1,4 @@
-# Animations for Blocks
+# Animations for Blocks Pro
 
 Before developing or extending the plugin, read [docs/development.md](docs/development.md). Preserve its data, interface, translation, and compatibility contracts; adding animations does not imply redesigning editor controls. Source UI strings must be English, translated through WordPress with the `animations-for-blocks` text domain.
 

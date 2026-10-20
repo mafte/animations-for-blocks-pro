@@ -51,7 +51,7 @@ const initialize = () => {
 			root.classList.remove('anfb-aos-pending')
 		} catch (error) {
 			reveal()
-			console.error('Animations for Blocks: initialization failed.', error)
+			console.error('Animations for Blocks Pro: initialization failed.', error)
 		}
 	}
 	if (!armed) return start()

@@ -1,6 +1,6 @@
-# Animations for Blocks
+# Animations for Blocks Pro
 
-Animations for Blocks adds animation controls to supported Gutenberg blocks. It uses AOS (Animate on Scroll) for block entrance animations and includes text effects, animation sequences, reduced-motion handling, and optional Lenis smooth scrolling.
+Animations for Blocks Pro adds animation controls to supported Gutenberg blocks. It uses AOS (Animate on Scroll) for block entrance animations and includes text effects, animation sequences, reduced-motion handling, and optional Lenis smooth scrolling.
 
 ## Requirements
 

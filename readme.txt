@@ -1,4 +1,4 @@
-=== Animations for Blocks ===
+=== Animations for Blocks Pro ===
 Tags: gutenberg, block, animation, animate, slide
 Requires at least: 6.6
 Tested up to: 7.1
@@ -23,7 +23,7 @@ This plugin uses [AOS - Animate on scroll library](https://github.com/michalsnik
 In your selected block's inspector controls (block settings) open the "Animation" panel and select an animation. The current block should display a preview of the selected animation and further options related to that animation will become available below.
 
 = How does it work? =
-Animations for Blocks plugin works by using the Animate on Scroll (AOS) library that is mostly CSS-based with some JavaScript to handle initialization. The plugin adds attributes to block's root element that tell the AOS library how to animate it. Loading the necessary styles and scripts is also handled automatically by the plugin.
+Animations for Blocks Pro works by using the Animate on Scroll (AOS) library that is mostly CSS-based with some JavaScript to handle initialization. The plugin adds attributes to block's root element that tell the AOS library how to animate it. Loading the necessary styles and scripts is also handled automatically by the plugin.
 
 = Animations are not playing for me =
 By default the plugin will not play animations for users that have the "prefers-reduced-motion" setting enabled for their device. This functionality can be turned off by enabling the "Ignore reduced motion preference" plugin option, how ever it's not recommended. Other users that don't have reduced motion preference enabled will still see the animations.

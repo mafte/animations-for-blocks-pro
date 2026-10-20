@@ -5,12 +5,12 @@ import {
 } from '@wordpress/components'
 
 /**
- * Modal that displays help info for Animations for Blocks.
+ * Modal that displays help info for Animations for Blocks Pro.
  */
 const HelpModal = ({onRequestClose}) => (
 	<Modal
 		className='wsd-anfb__help'
-		title={__('Animations for Blocks help', 'animations-for-blocks')}
+		title={__('Animations for Blocks Pro help', 'animations-for-blocks')}
 		onRequestClose={onRequestClose}
 	>
 		<div className='wsd-anfb__help__content'>

@@ -1,6 +1,6 @@
 ---
 name: animate-wordpress-blocks
-description: Plan and apply animations to existing WordPress content with Animations for Blocks and `wp anfb`. Use for block entrances, text effects, and sequences; do not use for plugin development.
+description: Plan and apply animations to existing WordPress content with Animations for Blocks Pro and `wp anfb`. Use for block entrances, text effects, and sequences; do not use for plugin development.
 ---
 
 # Animate WordPress blocks

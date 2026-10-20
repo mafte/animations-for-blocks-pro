@@ -51,7 +51,7 @@ const LOCATION_OPTIONS = [
 ]
 
 /**
- * Modal that displays help info for Animations for Blocks.
+ * Modal that displays help info for Animations for Blocks Pro.
  */
 const PluginSettingsModal = ({onRequestClose}: {onRequestClose: () => void}) => {
 
@@ -69,7 +69,7 @@ const PluginSettingsModal = ({onRequestClose}: {onRequestClose: () => void}) => 
 	return (
 		<Modal
 			className='wsd-anfb__settings'
-			title={__('Animations for Blocks settings', 'animations-for-blocks')}
+			title={__('Animations for Blocks Pro settings', 'animations-for-blocks')}
 			onRequestClose={onRequestClose}
 		>
 			<VStack

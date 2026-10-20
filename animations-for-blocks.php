@@ -1,11 +1,12 @@
 <?php
 /**
- * Plugin Name: Animations for Blocks
+ * Plugin Name: Animations for Blocks Pro
  * Description: Adds animations to Gutenberg blocks, with expanded features and performance improvements based on the original plugin.
  * Version: 1.6.0
  * Requires at least: 6.6
  * Requires PHP: 8.1
  * Author: Manuel Castillo
+ * Author URI: https://github.com/mafte
  */
 
 namespace wsd\anfb;
@@ -93,7 +94,7 @@ function register_settings() {
 		'animations-for-blocks',
 		'animations-for-blocks',
 		[
-			'description' => __('Animations for Blocks settings', 'animations-for-blocks'),
+			'description' => __('Animations for Blocks Pro settings', 'animations-for-blocks'),
 			'show_in_rest' => [
 				'schema' => [
 					'type' => 'object',
@@ -185,7 +186,7 @@ add_action('init', __NAMESPACE__ . '\\register_settings');
 
 
 /**
- * @return array Blocks known to not work properly with Animations for Blocks.
+ * @return array Blocks known to not work properly with Animations for Blocks Pro.
  */
 function get_unsupported_blocks() {
 	return apply_filters('anfb_unsupported_blocks', [

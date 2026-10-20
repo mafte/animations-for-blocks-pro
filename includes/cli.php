@@ -3,7 +3,7 @@ namespace wsd\anfb;
 
 defined('ABSPATH') || exit;
 
-/** Inspect and edit Animations for Blocks without replacing page layouts. */
+/** Inspect and edit Animations for Blocks Pro without replacing page layouts. */
 class Animation_CLI {
 	private function post($args) {
 		if (!get_current_user_id()) {
