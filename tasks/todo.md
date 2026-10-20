@@ -39,11 +39,11 @@ Trabajo anterior completo: [archivo preservado](completed/2026-10-19-wordpress-a
 **Descripción:** Integrar el motor JS fijado en la carga actual. Puede conservarse temporalmente CSS original para aislar API; no representa compatibilidad completa.
 
 **Acceptance criteria:**
-- [ ] Dependencia exacta reproducible sin CDN; scripts de instalación revisados, fuente del fork sin cambios.
-- [ ] Una entrada funciona con bootstrap/handles/filtros y `window.AOS` actuales, sin motores duplicados.
-- [ ] Snapshot candidato y configuración CSS identificados; separación de recursos frontend/editor comprobada.
+- [x] Fuente exacta fijada por SHA del ZIP y commit upstream, vendorizada sin cambios; el plugin no descarga en runtime.
+- [x] Una entrada con AOSIO funciona en el smoke del bundle del plugin, conserva `window.AOS`, clases/eventos y el orden de chunks; no requiere cambiar handles PHP.
+- [x] CSS de AOS original se conserva para aislar API; editor y frontend siguen importando el mismo recurso CSS registrado mientras la comparación visual de T4 está pendiente.
 
-**Verification:** Instalación según T1, `npm test`, `npm run build`, runner para entrada simple y recursos reales en navegador.
+**Verification:** SHA/procedencia en `vendor/aosio/PROVENANCE.md`; `npm test`, `npm run build`, PHP lint y smoke Chromium de control, upstream y bundle del plugin. Compatibilidad del filtro PHP y `window.AOS` externo siguen pendientes.
 **Dependencies:** Checkpoint A; uso privado del ZIP autorizado expresamente por el usuario.
 **Files likely touched:** `package.json`, `pnpm-lock.yaml`, `webpack.config.js`, `src/init.js`; `build/` generado.
 **Estimated scope:** Medium, 4 archivos fuente/config; revisión de generados por lotes <=5.

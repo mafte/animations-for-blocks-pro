@@ -7,11 +7,13 @@ const builds = {
 	control: process.env.ANFB_CONTROL_BUILD,
 	candidate: process.env.ANFB_CANDIDATE_BUILD,
 }
+if (process.env.ANFB_PLUGIN_BUILD) builds.plugin = process.env.ANFB_PLUGIN_BUILD
 for (const [engine, root] of Object.entries(builds)) assert(root && fs.statSync(root).isDirectory(), `${engine} build directory is required`)
 
 const assets = {
 	control: ['aos.css', 'aos.js', 'init.js'],
 	candidate: ['aosio.css', 'aosio.js'],
+	plugin: ['aos.css', 'aos.js', 'init.js'],
 }
 const fixture = fs.readFileSync(path.join(__dirname, 'aos-engine.html'), 'utf8')
 

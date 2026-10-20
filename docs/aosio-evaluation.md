@@ -1,6 +1,6 @@
 # Evaluación de viabilidad de AOSIO
 
-Fecha de revisión: 2026-10-19. Estado: bloqueada antes de integrar al plugin.
+Fecha de revisión: 2026-10-19. Estado: evaluación privada en curso; sin autorización para publicar o redistribuir.
 Rama: `codex/aosio-evaluation`.
 
 ## Resultado de T1
@@ -8,7 +8,8 @@ Rama: `codex/aosio-evaluation`.
 - AOSIO `jaredchesebro/aosio`, rama `main`, HEAD `40ed891c66107656a586e35b900cd2b23ff11598`; último commit fechado 2026-03-06, merge de `develop` (`Merge pull request #5 from jaredchesebro/develop`). SHA leído mediante `git ls-remote` y confirmado en el clon temporal.
 - El árbol del repositorio no contiene `LICENSE`, `COPYING` ni `NOTICE`; README, CUSTOMIZATION y manifiesto tampoco indican una licencia. El manifiesto declara versión `1.0.0`, autor DuBose Web y `"private": true`. Este último campo impide tratarlo como paquete npm publicado; no otorga permiso para redistribuir código.
 - La compilación es técnicamente viable desde una copia temporal fijada al SHA: `npm ci --ignore-scripts` instaló el lockfile y `npm run build` generó `dist/aosio.js` y `dist/aosio.esm.js`. La instalación informó 25 avisos de auditoría en herramientas declaradas como `devDependencies` (7 moderados, 18 altos). No se integró ese árbol de herramientas al plugin ni se caracterizó cada aviso.
-- La distribución de AOSIO no se incorporó al plugin porque su permiso de uso/modificación/redistribución no está documentado. La prueba funcional dentro del plugin y el benchmark quedan pendientes hasta obtener una licencia o autorización escrita del titular que cubra la distribución prevista. No inferir licencia MIT por su ascendencia AOS.
+- En T1 se detuvo la incorporación porque no constaban permisos de uso/modificación/redistribución; el usuario después autorizó una evaluación privada del ZIP en esta rama. No inferir licencia MIT por su ascendencia AOS.
+- El usuario proporcionó `/Users/manuabi/Downloads/aosio-main.zip` y autorizó usarlo para esta evaluación local en la rama. SHA-256 del ZIP: `69663987e5dec69902011b6ecdda3be8663feb602889f7b3214e6f1575f9bf7d`. La fuente coincide con el commit fijado. La autorización permite continuar la prueba privada; no aclara publicación o redistribución.
 
 ## Línea base AOS actual
 
@@ -31,10 +32,12 @@ Copia de control en `/private/tmp/anfb-aosio-evaluation/control/`, extraída del
 | `build/index.asset.php` | `ba47509df32fe7ab5512c6904fe12c6d4a3c32d912901a2926f569293a454425` |
 | `build/aos.asset.php` | `f7f29a4d026baef64620fbeeb86e7c8ca7aa7276075c4bdf67e3ef772789e9ea` |
 
-Los comandos se ejecutaron en el snapshot temporal; no cambiaron `src/` ni `build/` del checkout del plugin. El checkout permanece en `codex/aosio-evaluation`.
+Los comandos de línea base se ejecutaron en el snapshot temporal. La prueba de humo se ejecutó en Chromium `154.0.8037.98`, con AOS control, AOSIO upstream y los bundles reales del plugin. Cada motor animó todos los elementos y emitió entradas en los casos de 20, 100 y 500, con visibilidad final correcta. Los tiempos brutos fixture-a-init fueron control 33/35/40 ms, AOSIO upstream 40/35/39 ms y plugin con AOSIO 32/31/37 ms. No son mediciones comparativas de rendimiento: no aíslan inicialización, incluyen la fixture y tienen una sola corrida. JSON: `/private/tmp/anfb-aosio-evaluation/results/smoke.json`.
+
+El código del plugin incorpora ahora una copia privada de `src/js/` y `src/sass/` del ZIP bajo `vendor/aosio/`; ver [procedencia](../vendor/aosio/PROVENANCE.md). T3 cambia la entrada JS al motor AOSIO y conserva temporalmente el CSS de AOS para aislar la API. Si falta IntersectionObserver, la entrada revela el contenido. El smoke confirma la carga de `build/aos.js` más `build/init.js`. Compatibilidad completa, CSS candidato, Gutenberg y benchmark formal siguen pendientes.
 
 ## Alcance aún no comprobado
 
-No se integró AOSIO, no se creó el runner A/B y no se afirma compatibilidad con Gutenberg, secuencias, texto, Lenis, movimiento reducido, fallback, contenido legado, CLI, WordPress/PHP mínimos ni navegadores. Tampoco se midió rendimiento. El repositorio upstream compila, pero eso no verifica compatibilidad del plugin.
+No se afirma compatibilidad completa con Gutenberg, secuencias, texto, Lenis, movimiento reducido, fallos de carga, contenido legado, CLI, WordPress/PHP mínimos ni navegadores. Tampoco se ha medido rendimiento formal. La prueba de humo verifica únicamente inicialización, clases/eventos y visibilidad en Chromium.
 
-El siguiente paso depende de que el titular conceda una licencia/autorización que permita incorporar y distribuir el código en este plugin. Con ella se reanuda T2 y la matriz de la especificación. Si no se obtiene, cerrar la evaluación técnica como “no adoptable con las condiciones actuales” y mantener AOS.
+La evaluación técnica continúa por autorización del usuario para esta rama privada. Antes de publicar, fusionar o redistribuir el plugin con AOSIO, debe aclararse que el titular concede los derechos necesarios; hasta entonces mantener el cambio en esta rama local.

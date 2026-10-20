@@ -1,4 +1,4 @@
-import AOS from 'aos'
+import AOSIO from '../vendor/aosio/src/js/aosio-core.js'
 import '../node_modules/aos/dist/aos.css'
 import './aos-custom.scss'
 
@@ -44,7 +44,9 @@ const initialize = () => {
 	const armed = root.classList.contains('anfb-aos-pending')
 	const start = () => {
 		try {
-			const engine = window.AOS || AOS
+			const engine = window.AOS || AOSIO
+			const supportsIntersectionObserver = 'IntersectionObserver' in window && 'IntersectionObserverEntry' in window && 'intersectionRatio' in window.IntersectionObserverEntry.prototype
+			if (engine === AOSIO && !supportsIntersectionObserver) return reveal()
 			engine.init(settings)
 			window.AOS = engine
 			root.classList.add('anfb-aos-ready', 'anfb-aos-running')

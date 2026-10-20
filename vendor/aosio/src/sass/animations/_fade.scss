@@ -1,0 +1,54 @@
+@use 'config' as *;
+
+/**
+ * Fade animations:
+ * fade
+ * fade-up, fade-down, fade-left, fade-right
+ * fade-up-right, fade-up-left, fade-down-right, fade-down-left
+ */
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  html:not(.no-js):not([data-aos-disabled]) {
+    [data-aos^='fade'][data-aos^='fade'] {
+      opacity: 0;
+      transition-property: opacity, transform;
+
+      &.aos-animate {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    [data-aos='fade-up'] {
+      transform: translate3d(0, $aos-distance, 0);
+    }
+
+    [data-aos='fade-down'] {
+      transform: translate3d(0, -$aos-distance, 0);
+    }
+
+    [data-aos='fade-right'] {
+      transform: translate3d(-$aos-distance, 0, 0);
+    }
+
+    [data-aos='fade-left'] {
+      transform: translate3d($aos-distance, 0, 0);
+    }
+
+    [data-aos='fade-up-right'] {
+      transform: translate3d(-$aos-distance, $aos-distance, 0);
+    }
+
+    [data-aos='fade-up-left'] {
+      transform: translate3d($aos-distance, $aos-distance, 0);
+    }
+
+    [data-aos='fade-down-right'] {
+      transform: translate3d(-$aos-distance, -$aos-distance, 0);
+    }
+
+    [data-aos='fade-down-left'] {
+      transform: translate3d($aos-distance, -$aos-distance, 0);
+    }
+  }
+}

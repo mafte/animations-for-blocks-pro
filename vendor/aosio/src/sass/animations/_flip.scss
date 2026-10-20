@@ -1,0 +1,33 @@
+/**
+ * Flip animations:
+ * flip-left, flip-right, flip-up, flip-down
+ */
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  html:not(.no-js):not([data-aos-disabled]) {
+    [data-aos^='flip'][data-aos^='flip'] {
+      backface-visibility: hidden;
+      transition-property: transform;
+    }
+
+    [data-aos='flip-left'] {
+      transform: perspective(2500px) rotateY(-100deg);
+      &.aos-animate {transform: perspective(2500px) rotateY(0);}
+    }
+
+    [data-aos='flip-right'] {
+      transform: perspective(2500px) rotateY(100deg);
+      &.aos-animate {transform: perspective(2500px) rotateY(0);}
+    }
+
+    [data-aos='flip-up'] {
+      transform: perspective(2500px) rotateX(-100deg);
+      &.aos-animate {transform: perspective(2500px) rotateX(0);}
+    }
+
+    [data-aos='flip-down'] {
+      transform: perspective(2500px) rotateX(100deg);
+      &.aos-animate {transform: perspective(2500px) rotateX(0);}
+    }
+  }
+}

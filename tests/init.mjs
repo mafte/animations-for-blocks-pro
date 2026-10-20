@@ -2,13 +2,13 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import vm from 'node:vm'
 const source = fs.readFileSync(new URL('../src/init.js', import.meta.url), 'utf8').replace(/^import .*$/gm, '')
-function boot({ reduced = false, armed = true, fail = false } = {}) {
+function boot({ reduced = false, armed = true, fail = false, aos = true } = {}) {
  const classes = new Set(armed ? ['anfb-aos-pending'] : [])
  const frames = [], calls = []
  const root = { classList: { contains: c => classes.has(c), add: (...cs) => cs.forEach(c => classes.add(c)), remove: (...cs) => cs.forEach(c => classes.delete(c)) } }
  const element = { hasAttribute: a => a === 'data-anfb-distance', getAttribute: () => '24', style: { setProperty: (k,v) => calls.push([k,v]) } }
  const AOS = { init: () => { calls.push({ready: classes.has('anfb-aos-ready'), pending: classes.has('anfb-aos-pending')}); if (fail) throw Error('fixture') } }
- vm.runInNewContext(source, { AOS, window: {}, document: {documentElement: root, readyState: 'complete', querySelectorAll: () => [element]}, matchMedia: () => ({matches: reduced}), requestAnimationFrame: cb => frames.push(cb), getComputedStyle: () => ({opacity: 0}), console: {error() {}} })
+ vm.runInNewContext(source, { AOS, AOSIO: {}, window: aos ? {AOS} : {}, document: {documentElement: root, readyState: 'complete', querySelectorAll: () => [element]}, matchMedia: () => ({matches: reduced}), requestAnimationFrame: cb => frames.push(cb), getComputedStyle: () => ({opacity: 0}), console: {error() {}} })
  return { classes, frames, calls }
 }
 const normal = boot()
@@ -24,4 +24,6 @@ const failed = boot({fail:true}); failed.frames.shift()(); failed.frames.shift()
 assert.equal(failed.classes.size, 0)
 assert.equal(boot({reduced:true}).classes.size, 0)
 assert.equal(boot({armed:false}).frames.length, 0)
+const unsupported = boot({aos:false}); unsupported.frames.shift()(); unsupported.frames.shift()()
+assert.equal(unsupported.classes.size, 0)
 console.log('Boot checks passed: initial paint before AOS, reduced motion, failure and late initialization.')

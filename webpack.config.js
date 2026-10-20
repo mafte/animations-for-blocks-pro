@@ -20,7 +20,7 @@ module.exports = {
 			cacheGroups: {
 				...config.optimization.splitChunks.cacheGroups,
 				aos: {
-					test: /[\\/]node_modules[\\/]aos[\\/]|aos-custom/,
+					test: /[\\/]node_modules[\\/]aos[\\/]|[\\/]vendor[\\/]aosio[\\/]|aos-custom/,
 					name: 'aos',
 					chunks: 'all',
 				},

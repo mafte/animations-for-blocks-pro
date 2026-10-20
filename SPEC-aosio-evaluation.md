@@ -23,6 +23,7 @@ El usuario autoriza una integración experimental en la rama, la dependencia can
 - Control: `aos` declarado como `^3.0.0-beta.6`; registrar la versión exacta resuelta por `pnpm-lock.yaml` y los hashes de los bundles usados.
 - Candidato: <https://github.com/jaredchesebro/aosio>. Su manifiesto consultado declara versión 1.0.0, `private: true`, entrada UMD y entrada ESM sin estilos. Fijar un SHA antes de integrar; registrar fechas reales de commits y releases, sin confundirlas con fechas de indexación.
 - Comprobar licencia, atribuciones y posibilidad de redistribución antes de incorporar archivos al plugin. Si falta información, documentar el impedimento sin asumir permiso.
+- El usuario autorizó usar el ZIP proporcionado para una evaluación local y privada en esta rama. Esa instrucción permite continuar la integración experimental, pero no otorga por sí sola permiso para publicar o redistribuir los archivos.
 - Paquetes/herramientas actuales: pnpm 10.24.0, `@wordpress/scripts` 30.24.0, Playwright 1.52.0, Node y runners PHP/CLI existentes.
 - Referencias de contrato: `docs/development.md`, `docs/testing.md`, `includes/animation-schema.json` y las especificaciones de persistencia/migración existentes.
 - Fuente de packaging: <https://github.com/jaredchesebro/aosio/blob/main/package.json> y <https://github.com/jaredchesebro/aosio/blob/main/rollup.config.mjs>. README: <https://github.com/jaredchesebro/aosio>.

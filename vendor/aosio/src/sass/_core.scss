@@ -1,0 +1,11 @@
+@media (prefers-reduced-motion: no-preference) {
+  body.aos-ready [data-aos] {
+    transition-duration: var(--aos-duration);
+    transition-delay: 0s;
+    transition-timing-function: var(--aos-easing);
+
+    &.aos-animate {
+      transition-delay: var(--aos-delay);
+    }
+  }
+}

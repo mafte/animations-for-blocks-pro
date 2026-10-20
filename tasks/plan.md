@@ -11,7 +11,7 @@ Probar AOSIO como sustituto del AOS actual, contrastar el contrato del plugin y 
 El plan anterior estaba completo. Se conservó byte por byte en [plan anterior](completed/2026-10-19-wordpress-animation-skill-plan.md) y [tareas anteriores](completed/2026-10-19-wordpress-animation-skill-todo.md). No incluir `skills/` en los cambios de AOSIO.
 
 ## Decisiones
-- Resolver primero SHA, fechas reales, licencia/atribuciones y build del fork. `private: true` no determina por sí solo los permisos. No depender de una rama móvil, CDN ni descargas en ejecución. Elegir en T1 la instalación reproducible según los archivos realmente disponibles.
+- Resolver primero SHA, fechas reales, licencia/atribuciones y build del fork. El usuario autorizó usar el ZIP solo para evaluación local privada; antes de publicación/redistribución debe aclararse la licencia. `private: true` no determina por sí solo los permisos. No depender de rama móvil, CDN ni descargas en ejecución.
 - Preservar control inmutable con fuente, lockfile, bundles y hashes en `/private/tmp/anfb-aosio-evaluation/control/`. Fork, candidato y resultados en directorios hermanos. Documentar reproducción; no depender únicamente de archivos temporales.
 - Reutilizar `src/init.js`, handles `animate-on-scroll`/`animations-for-blocks`, filtros PHP, `window.AOS` y `window.anfbAosSettings`. No añadir selector público de motores, infraestructura de registro ni otro framework.
 - La primera prueba JS puede conservar el CSS original para aislar la API. La integración completa debe evaluar expresamente el CSS candidato y contabilizar cualquier CSS original necesario; distinguir las configuraciones en resultados.
