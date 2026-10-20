@@ -69,11 +69,11 @@ Trabajo anterior completo: [archivo preservado](completed/2026-10-19-wordpress-a
 **Descripción:** Contrastar geometría, eventos/opciones y cambios dinámicos, documentando divergencias del fork.
 
 **Acceptance criteria:**
-- [ ] Nueve anclajes/offset, once/mirror, scroll bidireccional, inicio intermedio, elementos altos/resize/layout cumplen <=5 px o quedan como fallos reproducibles.
-- [ ] init/refresh/refreshHard, eventos estándar/por id, anchor externo y configuración pública conservan conducta observable.
+- [x] Nueve anclajes muestreados con un elemento de 100 px, viewport 600 px y offset 20. AOSIO y el plugin fallan reproduciblemente en 7/9 puntos; dos no se disparan. Variantes geométricas/resize pendientes.
+- [x] Combinaciones básicas `once`/`mirror` y eventos globales/ID contrastados; AOSIO diverge cuando `once=false, mirror=false` y usa `aos:out:probe` donde el control actual emite `aos:in:probe` al salir. `anchor` externo y resto de API públicos siguen pendientes.
 - [x] Inserción dinámica con altura de viewport sin cambios falla en AOSIO upstream y pasa en control/candidato del plugin; adaptación y evidencia están registradas. Eliminación, refresh repetidos y fuga/reposo siguen pendientes.
 
-**Verification:** `tests/aos-engine.cjs` con Chromium 154 captura clases, eventos, visibilidad y nodo dinámico para 20/100/500; JSON temporal actualizado en `/private/tmp/anfb-aosio-evaluation/results/smoke.json`. Control y plugin adaptado pasan el caso dinámico; ZIP original falla. Anclajes y resto de API pendientes.
+**Verification:** `tests/aos-engine.cjs`, `tests/aos-anchors.cjs`, `tests/aos-api.cjs` con Chromium 154. Datos privados: `/private/tmp/anfb-aosio-evaluation/results/{smoke,anchors,api}.json` (logs `.log` para API). Anclajes y `once`/`mirror` muestran incompatibilidades; API completa y reposo pendientes.
 **Dependencies:** Checkpoint B.
 **Files likely touched:** `tests/aos-engine.cjs`, `tests/aos-engine.html`, `src/init.js` si se necesita adaptación, `docs/aosio-evaluation.md`.
 **Estimated scope:** Medium, hasta 4 archivos.
@@ -82,11 +82,12 @@ Trabajo anterior completo: [archivo preservado](completed/2026-10-19-wordpress-a
 **Descripción:** Verificar protecciones del plugin, carga condicionada y Lenis.
 
 **Acceptance criteria:**
-- [ ] Contenido/controles visibles con reduced motion, JS apagado, recurso bloqueado, excepción de init e IntersectionObserver ausente; detectar fallos silenciosos.
+- [x] Contenido visible en Chromium con reduced motion, JS apagado e IntersectionObserver ausente.
+- [ ] Recurso bloqueado y excepción de init comprobados; detectar errores silenciosos.
 - [ ] Lazy loading/filtros/handles y motor externo en window.AOS conservan contrato sin doble inicialización.
 - [ ] Lenis off/on/animate carga según contrato y no pierde entradas con scroll suave; restaurar ajustes de las fixtures.
 
-**Verification:** `node tests/init.mjs`, `npm test`, navegador real para fallos y carga, red/DOM/estado final; build/PHP lint si se modifica producción. Separar fallos preexistentes del candidato.
+**Verification:** `node tests/aos-fallback.cjs` pasa no-js, reduced motion y falta de IntersectionObserver en Chromium 154; `node tests/init.mjs` y `npm test` pasan. Recurso bloqueado, filtro/carga externa/Lenis siguen pendientes.
 **Dependencies:** T5.
 **Files likely touched:** `tests/init.mjs`, `tests/browser.cjs`, `tests/aos-engine.cjs`, `src/init.js`, `animations-for-blocks.php` solo si se demuestra necesario.
 **Estimated scope:** Medium, hasta 5 fuentes; bundles regenerados cuando corresponda.
