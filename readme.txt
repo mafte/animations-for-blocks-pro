@@ -1,6 +1,4 @@
 === Animations for Blocks ===
-Contributors: skadev
-Donate link: https://buymeacoffee.com/skadev
 Tags: gutenberg, block, animation, animate, slide
 Requires at least: 6.6
 Tested up to: 7.1
@@ -9,7 +7,7 @@ Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Allows to add animations to block editor blocks on scroll.
+Adds animations to Gutenberg blocks. Based on the original plugin, this version includes expanded animation features, performance improvements, and broader content compatibility.
 
 == Description ==
 
@@ -35,7 +33,7 @@ Since some elements are initially placed off-screen to then animate back to thei
 
 = Does it work for all blocks? =
 Animations are added when supported blocks render. New settings use native block metadata without changing saved entry markup. Third party blocks that do something unorthodox may not work.
-[Known unsupported blocks](https://github.com/ska-dev-1/animations-for-blocks/blob/main/animations-for-blocks.php#L172-L175)
+Some third-party blocks may use structures that are not supported.
 
 = Disable block support =
 The `anfb_unsupported_blocks` filter can be used in your child theme's `functions.php` file to disable block animation support.
@@ -90,7 +88,7 @@ WP-CLI commands: `wp anfb inspect`, `apply`, `clear`, `migrate`, and `restore`. 
 
 
 = 1.3.0 =
-* Restore maintainable upstream sources and build configuration.
+* Restore maintainable plugin sources and build configuration.
 * Add selected-text typing, word reveal and counters with reduced-motion support.
 * Add WP-CLI inspection, validated batch changes, dry-run, private backups and restoration.
 * Synchronize animation configuration and saved root HTML on CLI edits.

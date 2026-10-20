@@ -1,13 +1,11 @@
 <?php
 /**
  * Plugin Name: Animations for Blocks
- * Plugin URI: https://wordpress.org/plugins/animations-for-blocks
- * Description: Allows to add animations to Gutenberg blocks on scroll.
+ * Description: Adds animations to Gutenberg blocks, with expanded features and performance improvements based on the original plugin.
  * Version: 1.6.0
  * Requires at least: 6.6
  * Requires PHP: 8.1
- * Author: skadev
- * Author URI: https://profiles.wordpress.org/skadev/
+ * Author: Manuel Castillo
  */
 
 namespace wsd\anfb;
@@ -765,20 +763,3 @@ function animate_block($block_content, $parsed_block, $block) {
 	return $block_content;
 }
 add_filter('render_block', __NAMESPACE__ . '\\animate_block', 10, 3);
-
-
-/**
- * Add GitHub and Donate links on the plugins page.
- *
- * @param array $plugin_meta
- * @param string $plugin_file
- * @return array
- */
-function plugin_links($plugin_meta, $plugin_file) {
-	if($plugin_file === plugin_basename(WSD_ANFB_FILE)) {
-		$plugin_meta[] = '<a href="https://github.com/ska-dev-1/animations-for-blocks" target="_blank" rel="noopener noreferrer">GitHub</a>';
-		$plugin_meta[] = '<a href="https://buymeacoffee.com/skadev" target="_blank" rel="noopener noreferrer">Donate</a>';
-	}
-	return $plugin_meta;
-}
-add_filter('plugin_row_meta', __NAMESPACE__ . '\\plugin_links', 10, 2);
