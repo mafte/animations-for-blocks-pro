@@ -52,11 +52,11 @@ Trabajo anterior completo: [archivo preservado](completed/2026-10-19-wordpress-a
 **Descripción:** Evaluar CSS de AOSIO en frontend y Gutenberg; adaptar lo mínimo para conservar el contrato visual.
 
 **Acceptance criteria:**
-- [ ] Familias/variantes, Scale/Curtain, curva propia y distancias responsive conservan inicio/transición/final en frontend.
-- [ ] Preview manual/automático conserva duración/retraso/curvas mediante clases/atributos sin ejecutar motor de scroll en canvas.
-- [ ] CSS original que siga siendo necesario y adaptaciones se identifican y contabilizan; interfaz/HTML guardado conservados.
+- [x] CSS de las 37 variantes conserva estados iniciales/finales en el fixture `.editor-styles-wrapper`; Scale, Curtain, 21 curvas, duración/retraso y distancias desktop/móvil verificadas.
+- [ ] Gutenberg real confirma preview manual/automático, duración/retraso/curvas y persistencia al guardar/reabrir; el motor no se ejecuta en el canvas.
+- [x] CSS AOS antiguo retirado de runtime y editor; adaptaciones necesarias (especificidad de preview, transiciones, curvas, distancias) identificadas en fuente. HTML guardado e interfaz no cambiaron.
 
-**Verification:** `npm test`, `npm run build`, runner compatibility y Gutenberg real con estilos computados/fotogramas; extremos válidos de tiempos, escritorio y móvil.
+**Verification:** `npm test`, build, PHP lint y frozen lockfile pasan; smoke A/B de bundles plugin en Chromium; `node tests/aos-css.cjs` pasa con 37 variantes/21 curvas/escritorio-móvil. WordPress real, extremos 0–3000 ms y reduced motion pendientes.
 **Dependencies:** T3.
 **Files likely touched:** `src/editor.scss`, `src/style-compat.scss`, `src/aos-custom.scss`, `src/AnimatedBlockListBlock.tsx` solo si hace falta, `tests/aos-engine.cjs`; `build/` regenerado.
 **Estimated scope:** Medium, hasta 5 fuentes; dividir correcciones que requieran más consumidores.

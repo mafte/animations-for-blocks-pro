@@ -28,7 +28,7 @@
 	transform: scaleY(var(--aos-scale-out));
 }
 
-html:not(.no-js) [data-aos][data-aos] {
+html:not(.no-js):not([data-aos-disabled]) [data-aos][data-aos][data-aos] {
 	transition-property: transform, opacity, background, background-color, color, filter, clip-path;
 }
 
@@ -37,13 +37,33 @@ html:not(.no-js) [data-aos][data-aos] {
 	[data-anfb-distance] { --anfb-effective-distance: var(--anfb-distance-mobile, var(--anfb-distance, 100px)); }
 }
 @each $direction, $x, $y in (up, 0, 1), (down, 0, -1), (left, 1, 0), (right, -1, 0), (up-left, 1, 1), (up-right, -1, 1), (down-left, 1, -1), (down-right, -1, -1) {
-	html:not(.no-js) [data-anfb-distance][data-aos="fade-#{$direction}"], html:not(.no-js) [data-anfb-distance][data-aos="slide-#{$direction}"] {
+	html:not(.no-js):not([data-aos-disabled]) [data-anfb-distance][data-aos="fade-#{$direction}"], html:not(.no-js):not([data-aos-disabled]) [data-anfb-distance][data-aos="slide-#{$direction}"] {
 		transform: translate3d(calc(#{$x} * var(--anfb-effective-distance)), calc(#{$y} * var(--anfb-effective-distance)), 0);
 		&.aos-animate { transform: none; }
 	}
 }
 
-html:not(.no-js) [data-aos][data-aos-easing="ease-out-soft"] { transition-timing-function: cubic-bezier(.22,.61,.36,1); }
+$anfb-easings: (
+	ease-in-back: cubic-bezier(.6, -.28, .735, .045),
+	ease-out-back: cubic-bezier(.175, .885, .32, 1.275),
+	ease-in-out-back: cubic-bezier(.68, -.55, .265, 1.55),
+	ease-in-sine: cubic-bezier(.47, 0, .745, .715),
+	ease-out-sine: cubic-bezier(.39, .575, .565, 1),
+	ease-in-out-sine: cubic-bezier(.445, .05, .55, .95),
+	ease-in-quad: cubic-bezier(.55, .085, .68, .53),
+	ease-out-quad: cubic-bezier(.25, .46, .45, .94),
+	ease-in-out-quad: cubic-bezier(.455, .03, .515, .955),
+	ease-in-cubic: cubic-bezier(.55, .055, .675, .19),
+	ease-out-cubic: cubic-bezier(.215, .61, .355, 1),
+	ease-in-out-cubic: cubic-bezier(.645, .045, .355, 1),
+	ease-in-quart: cubic-bezier(.895, .03, .685, .22),
+	ease-out-quart: cubic-bezier(.165, .84, .44, 1),
+	ease-in-out-quart: cubic-bezier(.77, 0, .175, 1),
+	ease-out-soft: cubic-bezier(.22, .61, .36, 1),
+);
+@each $name, $function in $anfb-easings {
+	html:not(.no-js) [data-aos][data-aos-easing="#{$name}"] { transition-timing-function: $function; }
+}
 
 // The mask changes, not the element's position or dimensions.
 [data-aos="curtain-right"] { clip-path: inset(0 100% 0 0); }

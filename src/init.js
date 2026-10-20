@@ -1,5 +1,5 @@
 import AOSIO from '../vendor/aosio/src/js/aosio-core.js'
-import '../node_modules/aos/dist/aos.css'
+import '../vendor/aosio/src/sass/aosio.scss'
 import './aos-custom.scss'
 
 /**

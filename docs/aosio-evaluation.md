@@ -34,7 +34,9 @@ Copia de control en `/private/tmp/anfb-aosio-evaluation/control/`, extraída del
 
 Los comandos de línea base se ejecutaron en el snapshot temporal. La prueba de humo se ejecutó en Chromium `154.0.8037.98`, con AOS control, AOSIO upstream y los bundles reales del plugin. Cada motor animó todos los elementos y emitió entradas en los casos de 20, 100 y 500, con visibilidad final correcta. Los tiempos brutos fixture-a-init fueron control 33/35/40 ms, AOSIO upstream 40/35/39 ms y plugin con AOSIO 32/31/37 ms. No son mediciones comparativas de rendimiento: no aíslan inicialización, incluyen la fixture y tienen una sola corrida. JSON: `/private/tmp/anfb-aosio-evaluation/results/smoke.json`.
 
-El código del plugin incorpora ahora una copia privada de `src/js/` y `src/sass/` del ZIP bajo `vendor/aosio/`; ver [procedencia](../vendor/aosio/PROVENANCE.md). T3 cambia la entrada JS al motor AOSIO y conserva temporalmente el CSS de AOS para aislar la API. Si falta IntersectionObserver, la entrada revela el contenido. El smoke confirma la carga de `build/aos.js` más `build/init.js`. Compatibilidad completa, CSS candidato, Gutenberg y benchmark formal siguen pendientes.
+El código del plugin incorpora ahora una copia privada de `src/js/` y `src/sass/` del ZIP bajo `vendor/aosio/`; ver [procedencia](../vendor/aosio/PROVENANCE.md). La entrada usa el motor y el CSS de AOSIO; AOS antiguo se retiró de `package.json`/lockfile. Si falta IntersectionObserver, la entrada revela el contenido.
+
+`node tests/aos-css.cjs` valida en Chromium 154 las 37 variantes del esquema, estados iniciales/finales de preview, las 21 curvas, duración/retraso y distancias desktop/móvil. Los overrides conservan Scale/Curtain, curvas y preview Gutenberg; los hallazgos de especificidad están reflejados en `src/aos-custom.scss` y `src/style-compat.scss`. El smoke de `tests/aos-engine.cjs` valida carga de bundles del plugin, clases, eventos y visibilidad para 20/100/500 elementos. WordPress/Gutenberg real, scroll/API, reduced-motion/JS apagado, fallos de carga, texto/secuencias/Lenis y benchmark formal siguen pendientes.
 
 ## Alcance aún no comprobado
 

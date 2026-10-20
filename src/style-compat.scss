@@ -46,57 +46,57 @@
 
 @media screen {
 
-	html:not(.no-js) {
+	html:not(.no-js) .editor-styles-wrapper {
 
-		[data-aos^="fade"][data-aos^="fade"] {
+		[data-aos][data-aos^="fade"][data-aos^="fade"] {
 
 			&[data-anfb-animate] {
-				opacity: 1;
-				transform: none;
+				opacity: 1 !important;
+				transform: none !important;
 			}
 		}
 
-		[data-aos^="zoom"][data-aos^="zoom"] {
+		[data-aos][data-aos^="zoom"][data-aos^="zoom"] {
 
 			&[data-anfb-animate] {
-				opacity: 1;
-				transform: translate3d(0, 0, 0) scale(1);
+				opacity: 1 !important;
+				transform: translate3d(0, 0, 0) scale(1) !important;
 			}
 		}
 
-		[data-aos^="slide"][data-aos^="slide"] {
+		[data-aos][data-aos^="slide"][data-aos^="slide"] {
 
 			&[data-anfb-animate] {
-				visibility: visible;
-				transform: translate3d(0, 0, 0);
+				visibility: visible !important;
+				transform: translate3d(0, 0, 0) !important;
 			}
 		}
 
-		[data-aos="flip-left"] {
+		[data-aos][data-aos="flip-left"] {
 
 			&[data-anfb-animate] {
-				transform: perspective(2500px) rotateY(0);
+				transform: perspective(2500px) rotateY(0) !important;
 			}
 		}
 
-		[data-aos="flip-right"] {
+		[data-aos][data-aos="flip-right"] {
 
 			&[data-anfb-animate] {
-				transform: perspective(2500px) rotateY(0);
+				transform: perspective(2500px) rotateY(0) !important;
 			}
 		}
 
-		[data-aos="flip-up"] {
+		[data-aos][data-aos="flip-up"] {
 
 			&[data-anfb-animate] {
-				transform: perspective(2500px) rotateX(0);
+				transform: perspective(2500px) rotateX(0) !important;
 			}
 		}
 
-		[data-aos="flip-down"] {
+		[data-aos][data-aos="flip-down"] {
 
 			&[data-anfb-animate] {
-				transform: perspective(2500px) rotateX(0);
+				transform: perspective(2500px) rotateX(0) !important;
 			}
 		}
 	}
