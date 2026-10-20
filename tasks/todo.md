@@ -1,6 +1,6 @@
 # Tareas: entradas con IntersectionObserver
 
-[Plan](plan.md), 2026-10-20. Estado: tareas 01/02 terminadas en fixture; checkpoint A pendiente de revisión humana; integración de producción no iniciada. Rama `codex/aos-intersection-observer`, base optimizada `04b8e2a6e11eb377561170b626d2ad08dd7eb503`. Lista única de tareas y checkpoints; no hay tracker externo. Evidencia: [evaluación de IntersectionObserver](../docs/aos-intersection-evaluation.md).
+[Plan](plan.md), 2026-10-20. Estado: tareas 01/02 completadas; integración top-bottom en progreso; el usuario autorizó continuar con el resto del plan. Rama `codex/aos-intersection-observer`, base optimizada `04b8e2a6e11eb377561170b626d2ad08dd7eb503`. Lista única de tareas y checkpoints; no hay tracker externo. Evidencia: [evaluación de IntersectionObserver](../docs/aos-intersection-evaluation.md).
 
 Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones; si aparecen más de cinco archivos sustantivos o una decisión independiente, dividir antes de implementar. Build generado y hash mecánico de lockfile se entregan con cada cambio de motor y se revisan aparte. No marcar criterios como cumplidos por el solo hecho de escribir una prueba.
 
@@ -33,15 +33,15 @@ Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones
 ### Checkpoint A — Viabilidad antes de integración
 
 - [x] Geometría y estado demostrados, enfoque y costes documentados; las limitaciones de instalación limpia y cobertura de navegador quedan explícitas.
-- [ ] Revisar con el usuario la estrategia y cualquier diferencia de contrato antes de integrar el motor. Si falla, presentar el caso y revisar el diseño.
+- [x] El usuario autorizó continuar con la estrategia documentada y las diferencias de contrato registradas antes de integrar el motor.
 
 ## 03 — Activar top-bottom mediante IO
 
 **Descripción:** Incorporar la estrategia demostrada al fuente AOS parcheado para la entrada predeterminada, conservando su recorrido completo de clases, eventos y opciones. Los otros ocho placements siguen funcionando temporalmente con el detector anterior.
 
 **Criterios de aceptación:**
-- [ ] `top-bottom` usa IO con offset local/global y `data-aos-anchor`, once/mirror/eventos completos y aplicación del estado solo a objetivos afectados; preserva init/refresh, CSS y sus retornos observados.
-- [ ] Los ocho placements restantes siguen operativos por una ruta temporal delimitada; sin barrido de nodos ya migrados. El controlador limpia recursos básicos, descarta callbacks antiguos y evita recursión por sus propias mutaciones desde este incremento.
+- [x] `top-bottom` usa IO con offset local/global y `data-aos-anchor`, once/mirror/eventos completos y aplicación del estado solo a objetivos afectados; preserva init/refresh, CSS y sus retornos observados.
+- [x] Los ocho placements restantes siguen operativos por una ruta temporal delimitada; sin barrido de nodos ya migrados. El controlador limpia recursos básicos, descarta callbacks antiguos y evita recursión por sus propias mutaciones desde este incremento.
 - [ ] El prototipo validado se incorpora al parche reproducible y se retira su implementación duplicada de pruebas; API pública y número de solicitudes sin ampliaciones.
 
 **Verificación:** Regresión del caso migrado, contratos contra control, `npm test`, `npm run build`; comprobar instalación congelada y chunks/versión de AOS. Revisar observación activa y evento de entrada/salida real.

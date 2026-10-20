@@ -1,22 +1,16 @@
 diff --git a/src/js/aos.js b/src/js/aos.js
-index bcf6d5e1084affbd7e7cf7244f5c957cb4d6fc2a..885a7853d08b1ab266dcfcf6b21f139f078a2727 100644
+index c386419..c10dd98 100644
 --- a/src/js/aos.js
 +++ b/src/js/aos.js
-@@ -4,8 +4,6 @@
-  * made to animate elements on scroll in both directions
-  * *******************************************************
-  */
+@@ -7,2 +6,0 @@
 -import styles from './../sass/aos.scss';
 -
- // Modules & helpers
- import throttle from 'lodash.throttle';
- import debounce from 'lodash.debounce';
-@@ -22,6 +20,15 @@ import elements from './helpers/elements';
-  */
- let $aosElements = [];
- let initialized = false;
+@@ -24,0 +23,12 @@ let initialized = false;
 +let scrollHandler;
 +let scrollHandlerDelay;
++let intersectionObserver;
++let intersectionMarkers = [];
++let legacyElements = [];
 +let startEventHandler;
 +let startEventTarget;
 +let startEventName;
@@ -24,13 +18,7 @@ index bcf6d5e1084affbd7e7cf7244f5c957cb4d6fc2a..885a7853d08b1ab266dcfcf6b21f139f
 +let resizeHandlerDelay;
 +let orientationHandler;
 +let orientationHandlerDelay;
- 
- /**
-  * Default options
-@@ -48,6 +55,28 @@ let options = {
- // http://browserhacks.com/#hack-e71d8692f65334173fee715c222cb805
- const isBrowserNotSupported = () => document.all && !window.atob;
- 
+@@ -50,0 +61,29 @@ const isBrowserNotSupported = () => document.all && !window.atob;
 +const clearListeners = function clearListeners() {
 +  if (scrollHandler) {
 +    scrollHandler.cancel();
@@ -51,18 +39,24 @@ index bcf6d5e1084affbd7e7cf7244f5c957cb4d6fc2a..885a7853d08b1ab266dcfcf6b21f139f
 +    window.removeEventListener('orientationchange', orientationHandler);
 +    orientationHandler = null;
 +  }
++  if (intersectionObserver) {
++    intersectionObserver.disconnect();
++    intersectionObserver = null;
++  }
++  intersectionMarkers.forEach(marker => marker.remove());
++  intersectionMarkers = [];
++  legacyElements = [];
 +};
 +
- const initializeScroll = function initializeScroll() {
-   // Extend elements objects in $aosElements with their positions
-   $aosElements = prepare($aosElements, options);
-@@ -57,12 +86,19 @@ const initializeScroll = function initializeScroll() {
-   /**
-    * Handle scroll event to animate elements on scroll
-    */
+@@ -85,0 +125 @@ const initializeScroll = function initializeScroll() {
++          marker.setAttribute('data-aos-observer', '');
+@@ -107,6 +147,13 @@ const initializeScroll = function initializeScroll() {
 -  window.addEventListener(
 -    'scroll',
 -    throttle(() => {
+-      handleScroll($aosElements, options.once);
+-    }, options.throttleDelay)
+-  );
 +  if (scrollHandler && scrollHandlerDelay !== options.throttleDelay) {
 +    scrollHandler.cancel();
 +    window.removeEventListener('scroll', scrollHandler);
@@ -71,46 +65,20 @@ index bcf6d5e1084affbd7e7cf7244f5c957cb4d6fc2a..885a7853d08b1ab266dcfcf6b21f139f
 +
 +  if (!scrollHandler) {
 +    scrollHandler = throttle(() => {
-       handleScroll($aosElements, options.once);
--    }, options.throttleDelay)
--  );
++      handleScroll(legacyElements, options.once);
 +    }, options.throttleDelay);
 +    scrollHandlerDelay = options.throttleDelay;
 +    window.addEventListener('scroll', scrollHandler);
 +  }
- 
-   return $aosElements;
- };
-@@ -134,6 +170,7 @@ const isDisabled = function(optionDisable) {
-  *   to window scroll event and fire once document is ready to set initial state
-  */
- const init = function init(settings) {
+@@ -183,0 +231 @@ const init = function init(settings) {
 +  const wasInitialized = initialized;
-   options = Object.assign(options, settings);
- 
-   // Create initial array with elements -> to be fullfilled later with prepare()
-@@ -158,6 +195,8 @@ const init = function init(settings) {
-    */
-   if (!options.disableMutationObserver) {
-     observer.ready('[data-aos]', refreshHard);
+@@ -207,0 +256,2 @@ const init = function init(settings) {
 +  } else {
 +    observer.disconnect();
-   }
- 
-   /**
-@@ -165,6 +204,8 @@ const init = function init(settings) {
-    * or when browser is not supported
-    */
-   if (isDisabled(options.disable) || isBrowserNotSupported()) {
+@@ -214,0 +265,2 @@ const init = function init(settings) {
 +    clearListeners();
 +    observer.disconnect();
-     return disable();
-   }
- 
-@@ -185,37 +226,64 @@ const init = function init(settings) {
-   /**
-    * Handle initializing
-    */
+@@ -235,9 +287,19 @@ const init = function init(settings) {
 -  if (['DOMContentLoaded', 'load'].indexOf(options.startEvent) === -1) {
 -    // Listen to options.startEvent and initialize AOS
 -    document.addEventListener(options.startEvent, function() {
@@ -139,23 +107,13 @@ index bcf6d5e1084affbd7e7cf7244f5c957cb4d6fc2a..885a7853d08b1ab266dcfcf6b21f139f
 +      };
 +      startEventTarget.addEventListener(startEventName, startEventHandler);
 +    }
-   }
- 
-   if (
-     options.startEvent === 'DOMContentLoaded' &&
-     ['complete', 'interactive'].indexOf(document.readyState) > -1
-   ) {
+@@ -250 +312,4 @@ const init = function init(settings) {
 -    // Initialize AOS if default startEvent was already fired
 +    if (startEventHandler) {
 +      startEventTarget.removeEventListener(startEventName, startEventHandler);
 +      startEventHandler = null;
 +    }
-     refresh(true);
-   }
- 
-   /**
-    * Refresh plugin on window resize or orientation change
-    */
+@@ -257,4 +322,10 @@ const init = function init(settings) {
 -  window.addEventListener(
 -    'resize',
 -    debounce(refresh, options.debounceDelay, true)
@@ -170,7 +128,7 @@ index bcf6d5e1084affbd7e7cf7244f5c957cb4d6fc2a..885a7853d08b1ab266dcfcf6b21f139f
 +    resizeHandlerDelay = options.debounceDelay;
 +    window.addEventListener('resize', resizeHandler);
 +  }
- 
+@@ -262,4 +333,12 @@ const init = function init(settings) {
 -  window.addEventListener(
 -    'orientationchange',
 -    debounce(refresh, options.debounceDelay, true)
@@ -187,54 +145,46 @@ index bcf6d5e1084affbd7e7cf7244f5c957cb4d6fc2a..885a7853d08b1ab266dcfcf6b21f139f
 +  }
 +
 +  if (wasInitialized) refresh();
- 
-   return $aosElements;
- };
+diff --git a/src/js/helpers/handleScroll.js b/src/js/helpers/handleScroll.js
+index 148b813..8e96357 100644
+--- a/src/js/helpers/handleScroll.js
++++ b/src/js/helpers/handleScroll.js
+@@ -83,2 +83,4 @@ const applyClasses = (el, top) => {
+-const handleScroll = $elements =>
+-  $elements.forEach((el, i) => applyClasses(el, window.pageYOffset));
++const handleScroll = $elements => {
++  const top = window.pageYOffset;
++  $elements.forEach(el => applyClasses(el, top));
++};
 diff --git a/src/js/libs/observer.js b/src/js/libs/observer.js
-index e64795791d5fdd16def4da81c3fef87f6c69f77c..99021e473f4963040feff6ea8978c68ebc9b1598 100644
+index e647957..3760f8c 100644
 --- a/src/js/libs/observer.js
 +++ b/src/js/libs/observer.js
-@@ -1,4 +1,6 @@
- let callback = () => {};
+@@ -1,0 +2,2 @@ let callback = () => {};
 +let mutationObserver;
 +let observedSelector;
- 
- function containsAOSNode(nodes) {
-   let i, currentNode, result;
-@@ -26,2 +28,3 @@ function check(mutations) {
+@@ -26 +28,2 @@ function check(mutations) {
 -  mutations.forEach(mutation => {
 +  for (let i = 0; i < mutations.length; i += 1) {
 +    const mutation = mutations[i];
-     const addedNodes = Array.prototype.slice.call(mutation.addedNodes);
-@@ -31,3 +33,4 @@
-     if (containsAOSNode(allNodes)) {
+@@ -32 +35,2 @@ function check(mutations) {
 -      return callback();
 +      callback();
 +      return;
-     }
-@@ -34,2 +37,2 @@
+@@ -34 +38 @@ function check(mutations) {
 -  });
 +  }
- }
-@@ -50,14 +52,24 @@ function ready(selector, fn) {
-   const doc = window.document;
-   const MutationObserver = getMutationObserver();
- 
+@@ -53 +56,0 @@ function ready(selector, fn) {
 -  const observer = new MutationObserver(check);
-   callback = fn;
+@@ -54,0 +58,4 @@ function ready(selector, fn) {
 +  if (mutationObserver && observedSelector === selector) return;
 +  if (mutationObserver) mutationObserver.disconnect();
 +  mutationObserver = new MutationObserver(check);
 +  observedSelector = selector;
- 
+@@ -56 +63 @@ function ready(selector, fn) {
 -  observer.observe(doc.documentElement, {
 +  mutationObserver.observe(doc.documentElement, {
-     childList: true,
-     subtree: true,
-     removedNodes: true
-   });
- }
- 
+@@ -63 +70,8 @@ function ready(selector, fn) {
 -export default { isSupported, ready };
 +function disconnect() {
 +  if (mutationObserver) mutationObserver.disconnect();
@@ -244,19 +194,3 @@ index e64795791d5fdd16def4da81c3fef87f6c69f77c..99021e473f4963040feff6ea8978c68e
 +}
 +
 +export default { isSupported, ready, disconnect };
-diff --git a/src/js/helpers/handleScroll.js b/src/js/helpers/handleScroll.js
-index 148b813..8e96357 100644
---- a/src/js/helpers/handleScroll.js
-+++ b/src/js/helpers/handleScroll.js
-@@ -80,7 +80,9 @@ const applyClasses = (el, top) => {
-  * @param  {array} $elements         array of elements nodes
-  * @return {void}
-  */
--const handleScroll = $elements =>
--  $elements.forEach((el, i) => applyClasses(el, window.pageYOffset));
-+const handleScroll = $elements => {
-+  const top = window.pageYOffset;
-+  $elements.forEach(el => applyClasses(el, top));
-+};
- 
- export default handleScroll;
