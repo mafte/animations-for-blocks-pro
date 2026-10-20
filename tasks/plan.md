@@ -62,7 +62,7 @@ node tests/aos-browser.cjs --mode benchmark --control "$ANFB_AOS_AUDIT/control" 
 
 `--browser firefox` y `--browser webkit` permiten contratos adicionales si sus binarios existen. Chromium por omisión; Safari real se identifica aparte. Fotogramas y estilos computados pertenecen al modo contract.
 
-Benchmark: 0/30/100/500 elementos, 1000 de estrés; 1280×800/390×844; CPU normal/×4; calentamiento y cinco muestras por caso/variante alternando orden. Separar init, scroll, refresh, mutaciones y reposo. Medir tiempos, scripting/layout/paint, tareas largas, bytes raw/gzip/HTTP y solicitudes. Pasadas independientes para instrumentación de listeners y perfiles de tiempo. Conservar muestras, mediana/p95 y definiciones. Primero control contra control para cuantificar ruido.
+Benchmark base: 0/30/100/500 elementos, 1000 de estrés; 1280×800/390×844; CPU normal/×4; calentamiento y cinco muestras por caso/variante alternando orden. Medir ready de AOS, duración de descarga JS, refresh y respuesta a scroll; tamaños raw/gzip del bundle. Conservar muestras, mediana/p95 y definiciones. Primero control contra control para cuantificar ruido. Medición de mutaciones concentrada en tarea 06; waterfall/HTTP real, reposo y perfiles de scripting/layout/paint requieren instrumentación focalizada y se completan cuando exista sitio desechable.
 
 Las aserciones del candidato son criterios absolutos y comparaciones justificadas. Enumerar defectos conocidos del control: no considerarlos aceptación ni usar una condición genérica que tolere cualquier fallo. Un JSON informativo no certifica compatibilidad.
 
@@ -126,4 +126,4 @@ Metas aprobadas: listener único; objetivo experimental de 25% menos CSS AOS gzi
 
 ## Preguntas pendientes
 
-01–03 resuelven entorno y costes reales; 11 verifica disponibilidad de la matriz. No hay una decisión funcional imprescindible pendiente. La aprobación del plan es el siguiente paso antes de implementar.
+01–03 establecen el entorno y la línea base sintética. El usuario aprobó continuar; checkpoint A se considera satisfecho para correcciones de bajo riesgo como listeners. Métricas que requieren un sitio desechable, navegadores adicionales o traza de CPU siguen pendientes y se completan antes de las decisiones pertinentes en 06/09/11.

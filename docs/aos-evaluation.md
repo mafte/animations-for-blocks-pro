@@ -27,4 +27,50 @@ Una comprobación aislada de `AOS.refresh()`/`refreshHard()` sobre el bundle ori
 
 ## Resultados de compatibilidad y rendimiento
 
-Pendientes de las tareas 02–03. Se registrarán comandos, muestras, medianas/p95, dispersión control-control, condiciones de CPU/viewport, solicitudes y límites antes de editar el runtime AOS.
+### Compatibilidad de bundles
+
+Comando ejecutado desde la raíz:
+
+```sh
+node tests/aos-browser.cjs --mode contract --control /private/tmp/anfb-aos-control-s6iiso7q --candidate "$PWD" --output /private/tmp/anfb-aos-results
+```
+
+Resultado: ambos pasan (`/private/tmp/anfb-aos-results/contract-chromium.json`, SHA-256 `a8b6e938f0208c2fc52af37f8eab1687049d578ebb3c0cacf920daba8201eac6`).
+
+Chrome pasó para el control y para el candidato compilado. La página sintética carga `aos.js`, `init.js` y `aos.css` por HTTP local. Se comprobaron los métodos públicos `init`/`refresh`/`refreshHard`, el estado CSS inicial y final, `aos:in`/`aos:out`/`aos:in:<id>` (incluyendo `event.detail`), los nueve `data-aos-anchor-placement`, `once`, `mirror`, `refreshHard` con nodo insertado y el override `window.AOS` externo. Una copia temporal con `aos.css` vacío hizo fallar la aserción CSS, confirmando que el runner detecta esa regresión. No se impone aquí un umbral geométrico por anclaje: cada valor se inicia desde scroll cero y se comprueba que permanece oculto hasta el scroll y luego se activa.
+
+`AOS` dejó 2 listeners de scroll en la página al terminar la carga y 22 tras 20 llamadas a `refreshHard()`. Las mismas cuentas aparecieron en control/candidato. Esta medición real complementa la reproducción en VM (1 → 21 → 41); la diferencia inicial se explica porque el navegador también ejecuta el refresco del evento `load`. Es un defecto del control que la tarea 05 debe corregir, no un criterio de aceptación del candidato actual.
+
+### Benchmark sintético
+
+Se usó Chrome 154.0.8037.98, fixture servido en `127.0.0.1`, 0/30/100/500/1000 elementos animables, viewport 1280×800 y 390×844, throttling CDP ×1/×4, un calentamiento y cinco muestras por celda/variante. Se alternó el orden control/candidato. Se repitió la misma matriz apuntando ambas etiquetas al mismo control: 200 muestras también. Los JSON completos están en `/private/tmp/anfb-aos-results/` y `/private/tmp/anfb-aos-noise/`; no se guardan las trazas dentro del plugin.
+
+Comandos:
+
+```sh
+node tests/aos-browser.cjs --mode benchmark --control /private/tmp/anfb-aos-control-s6iiso7q --candidate "$PWD" --output /private/tmp/anfb-aos-results
+node tests/aos-browser.cjs --mode benchmark --control /private/tmp/anfb-aos-control-s6iiso7q --candidate /private/tmp/anfb-aos-control-s6iiso7q --output /private/tmp/anfb-aos-noise
+```
+
+Hashes SHA-256: comparación control/candidato `e8982db596ed0439800d6edecb120fbff217728b47d645aec921bccb37c1f303`; ruido control/control `bc3f53b3d79a56f2d8a671e43ba23673cbb0e47887eabdd23a02403cc61b7c97`.
+
+Definiciones: `aosReadyMs` es `performance.now()` al asignarse `window.AOS` tras `init`; `assetTransferMs` suma duración de recurso de `aos.js` y `init.js`; `refreshMs` mide la llamada sincrónica a `AOS.refreshHard()`; `scrollResponseMs` cubre scroll + evento y una espera de 130 ms para dejar correr el throttle de AOS (es latencia de respuesta, no CPU puro ni medición de FPS). Cada grupo de conteo contiene 20 muestras por variante, agregando viewport y throttling. Medianas observadas:
+
+| Elementos | AOS listo ms control/candidato | Transferencia JS ms control/candidato | `refreshHard` ms control/candidato | Respuesta scroll ms control/candidato |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | 13.6 / 15.1 | 8.3 / 8.7 | 0.1 / 0.1 | 131.5 / 131.7 |
+| 30 | 22.4 / 19.2 | 9.1 / 8.7 | 0.3 / 0.3 | 133.0 / 133.0 |
+| 100 | 22.5 / 23.0 | 8.7 / 9.1 | 0.7 / 0.6 | 135.2 / 135.3 |
+| 500 | 28.6 / 31.4 | 8.7 / 9.0 | 2.5 / 2.6 | 160.4 / 160.1 |
+| 1000 | 34.7 / 34.4 | 8.4 / 8.8 | 4.4 / 4.4 | 220.6 / 220.0 |
+
+Para 500 nodos, los p95 control/candidato fueron: listo 68.0/69.2 ms, transferencia 12.5/14.4 ms, refresh 9.0/9.2 ms y respuesta al scroll 249.5/249.3 ms. Control contra control tuvo diferencia mediana absoluta emparejada de 1.68% para ready, 11.22% para transferencia, 4.55% para refresh y 0.63% para scroll. En candidato/control las diferencias fueron 4.73%, 8.05%, 9.09% y 0.32%, respectivamente; la dispersión de refresh y transferencia impide atribuir pequeñas variaciones a código. Control y candidato contienen el mismo runtime (solo cambia un ID interno de webpack), así que no hay mejora esperada en esta etapa.
+
+El CSS AOS pesa 31380 bytes (2868 gzip); el JS AOS pesa 13686 (4827 gzip). El init pesa 2512 (1257 gzip). El runner local registra duración de transferencia de JS, pero no captura waterfalls WordPress ni bytes transferidos por HTTP; esos quedan para la prueba de carga integrada en una instalación desechable.
+
+### Límites del control
+
+- No hay sitio local con `ANFB_TEST_SITE` efectivo; no se hizo integración con WordPress/Gutenberg ni visualización de frontend real.
+- Firefox/WebKit/Safari no se validaron. En esta etapa solo está medido Chrome; la disponibilidad de otros binarios se reexaminará para aceptación.
+- Los nueve anclajes se ejercitan funcionalmente, pero todavía no se contrastan sus píxeles exactos de umbral. El runner es una fixture sintética y no mide FPS, compositor ni perfiles de CPU detallados.
+- `aos.css` comprimido ya representa ~2.8 KB; cualquier compactación debe superar la meta y conservar especificidad/cascada. Los resultados de control-control no muestran una oportunidad de JS por sí solos: los perfiles guiarán el siguiente paso.

@@ -11,17 +11,18 @@
 
 ## 02 — Caracterizar contratos sobre bundles reales
 
-- [ ] Crear runner Playwright y fixture HTTP, con cierre de recursos y código de salida de error ante aserción fallida.
-- [ ] Caracterizar API/opciones/clases/eventos, nueve placements, once/mirror, anclajes, scroll inverso/saltos; geometría de layout y latencia separadas.
-- [ ] Distinguir defectos originales de criterios del candidato; dejar el arnés preparado para ampliar casos CSS/DOM en sus tareas específicas.
+- [x] Crear runner Playwright y fixture HTTP, con cierre de recursos y código de salida de error ante aserción fallida.
+- [x] Caracterizar API/opciones/clases/eventos, nueve placements, once/mirror, anclajes, scroll inverso/saltos; geometría de layout y latencia separadas.
+- [x] Distinguir defectos originales de criterios del candidato; dejar el arnés preparado para ampliar casos CSS/DOM en sus tareas específicas.
 
-**Verificar:** comando --mode contract del plan con original y copia idéntica; introducir temporalmente una diferencia de fixture y comprobar fallo del runner. **Depende:** 01. **Archivos:** tests/aos-browser.cjs, tests/aos-fixture.cjs, docs/aos-evaluation.md. **Tamaño:** M.
+**Verificar:** comando --mode contract del plan con original y copia idéntica; introducir temporalmente una diferencia de fixture y comprobar fallo del runner. **Depende:** 01. **Archivos:** tests/aos-browser.cjs (runner y fixture HTTP en un archivo), docs/aos-evaluation.md. **Tamaño:** M.
 
 ## 03 — Medir baseline y priorizar
 
-- [ ] Benchmark de 0/30/100/500 elementos, 1000 estrés, dos viewports, CPU normal/×4, calentamiento y cinco muestras alternadas por caso.
-- [ ] Separar init/scroll/refresh/mutaciones/reposo, bytes raw/gzip/HTTP y perfiles/conteos; registrar mediana/p95, unidades y definiciones.
-- [ ] Medir control contra control y ruido; priorizar CPU/CSS/arranque/compatibilidad antigua según trazas y bundle real.
+- [x] Benchmark de 0/30/100/500 elementos, 1000 estrés, dos viewports, CPU normal/×4, calentamiento y cinco muestras alternadas por caso.
+- [x] Medir inicialización, refresh y respuesta a scroll, tamaños raw/gzip y conteos; registrar medianas/p95, unidades y definiciones.
+- [ ] Medir coste de lotes de mutaciones, reposo y waterfall HTTP WordPress en sus tareas enfocadas (06/09); no existe sitio desechable disponible aún.
+- [x] Medir control contra control y ruido; priorizar CPU/CSS/arranque/compatibilidad antigua según trazas y bundle real.
 
 **Verificar:** comando --mode benchmark; revisar muestras, repetibilidad, trazas y hashes. **Depende:** 02. **Archivos:** ambos archivos del runner y docs/aos-evaluation.md. **Tamaño:** M.
 
