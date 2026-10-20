@@ -206,6 +206,39 @@ async function geometryContracts(browser, base, variant) {
 	return observed
 }
 
+async function failureContracts(browser, base) {
+	const results = {}
+	for (const mode of ['missing', 'constructor', 'callback']) {
+		const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+		await page.addInitScript(mode => {
+			if (mode === 'missing') delete window.IntersectionObserver
+			if (mode === 'constructor') window.IntersectionObserver = class { constructor() { throw new Error('IO constructor failed') } }
+			if (mode === 'callback') window.IntersectionObserver = class {
+				constructor(callback) { this.callback = callback; window.__failingIO = this }
+				observe() { requestAnimationFrame(() => requestAnimationFrame(() => this.callback([{ get target() { throw new Error('IO callback failed') } }], this))) }
+				disconnect() { this.disconnected = true }
+			}
+		}, mode)
+		try {
+			await page.goto(`${base}/geometry?variant=candidate&anchor=top-bottom`)
+			await page.waitForFunction(() => window.AOS)
+			await page.evaluate(() => document.dispatchEvent(new Event('anfb:geometry:start')))
+			await page.waitForFunction(() => document.querySelector('#subject').classList.contains('aos-init'))
+			if (mode === 'callback') {
+				await page.waitForFunction(() => !document.querySelector('#subject').hasAttribute('data-aos'))
+				results[mode] = await page.evaluate(() => ({ markers: document.querySelectorAll('[data-aos-observer]').length, observerDisconnected: window.__failingIO.disconnected, opacity: getComputedStyle(document.querySelector('#subject')).opacity }))
+				assert.deepEqual(results[mode], { markers: 0, observerDisconnected: true, opacity: '1' }, 'callback failure should reveal content and release IO resources')
+			} else {
+				await page.evaluate(() => window.scrollTo(0, 1000))
+				await page.waitForFunction(() => document.querySelector('#subject').classList.contains('aos-animate'))
+				results[mode] = await page.evaluate(() => ({ animated: document.querySelector('#subject').classList.contains('aos-animate'), markers: document.querySelectorAll('[data-aos-observer]').length }))
+				assert.deepEqual(results[mode], { animated: true, markers: 0 }, `${mode} should use the legacy scroll fallback`)
+			}
+		} finally { await page.close() }
+	}
+	return results
+}
+
 async function contracts(browser, base, variant) {
 	const { page, errors } = await pageFor(browser, base, variant)
 	let listenerCounts
@@ -467,7 +500,8 @@ async function contracts(browser, base, variant) {
 			assert.equal(orientation.active, 1, `${variant}: orientation refresh accumulated IO observers`)
 		}
 	} finally { await resize.page.close() }
-	return { variant, anchors: anchors.length, geometry, api: true, once: true, mirror: true, dynamicRefresh: true, dynamicDisable: true, heightRefresh, viewportRefresh, mutationRefreshes, pageOffsetReads, timings, externalOverride: true, customStartEventRebind: variant === 'candidate', listenerCounts }
+	const failures = variant === 'candidate' ? await failureContracts(browser, base) : null
+	return { variant, anchors: anchors.length, geometry, api: true, once: true, mirror: true, dynamicRefresh: true, dynamicDisable: true, heightRefresh, viewportRefresh, mutationRefreshes, pageOffsetReads, timings, externalOverride: true, customStartEventRebind: variant === 'candidate', failureModes: failures, listenerCounts }
 }
 
 ;(async () => {

@@ -9,7 +9,7 @@ overrides:
 
 patchedDependencies:
   aos@3.0.0-beta.6:
-    hash: 3dc6e5fbec6ef045bfe26cdb91529bdf430450a4c20e8e68df3ed5364a8b62ce
+    hash: 8c1fe8334b1b4b647ba6e57866ab6322f8a0385607d59754ce24eec6cd1438ca
     path: patches/aos@3.0.0-beta.6.patch
 
 importers:
@@ -79,7 +79,7 @@ importers:
         version: 30.24.0(@playwright/test@1.52.0)(@types/eslint@9.6.1)(@types/node@22.14.1)(@types/webpack@4.41.40)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(stylelint-scss@6.11.1(stylelint@16.18.0(typescript@5.8.3)))(type-fest@3.13.1)(typescript@5.8.3)
       aos:
         specifier: ^3.0.0-beta.6
-        version: 3.0.0-beta.6(patch_hash=3dc6e5fbec6ef045bfe26cdb91529bdf430450a4c20e8e68df3ed5364a8b62ce)
+        version: 3.0.0-beta.6(patch_hash=8c1fe8334b1b4b647ba6e57866ab6322f8a0385607d59754ce24eec6cd1438ca)
       classnames:
         specifier: ^2.5.1
         version: 2.5.1
@@ -10237,7 +10237,7 @@ snapshots:
       normalize-path: 3.0.0
       picomatch: 2.3.1
 
-  aos@3.0.0-beta.6(patch_hash=3dc6e5fbec6ef045bfe26cdb91529bdf430450a4c20e8e68df3ed5364a8b62ce):
+  aos@3.0.0-beta.6(patch_hash=8c1fe8334b1b4b647ba6e57866ab6322f8a0385607d59754ce24eec6cd1438ca):
     dependencies:
       classlist-polyfill: 1.2.0
       lodash.debounce: 4.0.8

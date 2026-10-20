@@ -1,6 +1,6 @@
 # Tareas: entradas con IntersectionObserver
 
-[Plan](plan.md), 2026-10-20. Estado: tareas 01-04 completadas; ciclo de vida 05 en progreso; el usuario autorizó continuar con el resto del plan. Rama `codex/aos-intersection-observer`, base optimizada `04b8e2a6e11eb377561170b626d2ad08dd7eb503`. Lista única de tareas y checkpoints; no hay tracker externo. Evidencia: [evaluación de IntersectionObserver](../docs/aos-intersection-evaluation.md).
+[Plan](plan.md), 2026-10-20. Estado: tareas 01-04 completadas; tarea 05 con una cobertura pendiente; fallback IO de tarea 06 verificado. Rama `codex/aos-intersection-observer`, base optimizada `04b8e2a6e11eb377561170b626d2ad08dd7eb503`. Lista única de tareas y checkpoints; no hay tracker externo. Evidencia: [evaluación de IntersectionObserver](../docs/aos-intersection-evaluation.md).
 
 Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones; si aparecen más de cinco archivos sustantivos o una decisión independiente, dividir antes de implementar. Build generado y hash mecánico de lockfile se entregan con cada cambio de motor y se revisan aparte. No marcar criterios como cumplidos por el solo hecho de escribir una prueba.
 
@@ -86,9 +86,11 @@ Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones
 **Descripción:** Comprobar que la integración del nuevo detector conserva la primera transición, movimiento reducido, motor externo y coordinación del texto con las entradas de bloque.
 
 **Criterios de aceptación:**
-- [ ] Primera entrada tiene frames intermedios y contenido visible ante IO ausente, error de constructor/callback y fallo de init; sin JavaScript o con movimiento reducido el contenido permanece accesible y no quedan recursos inútiles.
-- [ ] `window.AOS` externo conserva su ruta incluso sin IO del navegador; init tardío/startEvent y opciones/clases personalizadas siguen operativos. Fallo asíncrono del detector libera el contenido, no solo excepciones sincrónicas.
+- [x] Primera entrada tiene frames intermedios y contenido visible ante IO ausente, error de constructor/callback y fallo de init; sin JavaScript o con movimiento reducido el contenido permanece accesible y no quedan recursos inútiles.
+- [x] `window.AOS` externo conserva su ruta incluso sin IO del navegador; init tardío/startEvent y opciones/clases personalizadas siguen operativos. Fallo asíncrono del detector libera el contenido, no solo excepciones sincrónicas.
 - [ ] Secuencias y `startWithBlock` de texto siguen la activación correcta, sin disparos duplicados; el IO de `src/text.js` mantiene su funcionamiento independiente.
+
+**Evidencia Chromium:** IO ausente y constructor que lanza conservan el fallback de scroll y activan `top-bottom`; callback asíncrono que falla elimina `data-aos`, revela el contenido y desconecta observer/marcadores. `npm test` cubre el orden de primer paint, movimiento reducido y fallo de inicialización; integración de secuencias/texto queda para el escenario WordPress.
 
 **Verificación:** Ampliar `tests/init.mjs` solo para arranque; casos reales del runner para callbacks, ausencia de API y transición visible. `npm test`, `npm run build`; revisar fotogramas y clases del respaldo.
 
