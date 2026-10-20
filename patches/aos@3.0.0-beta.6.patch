@@ -1,5 +1,5 @@
 diff --git a/src/js/aos.js b/src/js/aos.js
-index c386419..c10dd98 100644
+index c386419..02b51ef 100644
 --- a/src/js/aos.js
 +++ b/src/js/aos.js
 @@ -7,2 +6,0 @@
@@ -48,37 +48,45 @@ index c386419..c10dd98 100644
 +  legacyElements = [];
 +};
 +
-@@ -85,0 +125 @@ const initializeScroll = function initializeScroll() {
+@@ -59 +98 @@ const initializeScroll = function initializeScroll() {
+-  const observedElements = [];
++  const observedElements = $aosElements;
+@@ -61,4 +99,0 @@ const initializeScroll = function initializeScroll() {
+-  $aosElements.forEach(el => {
+-    const placement = el.node.getAttribute('data-aos-anchor-placement') || options.anchorPlacement;
+-    (placement === 'top-bottom' ? observedElements : legacyElements).push(el);
+-  });
+@@ -85,0 +121 @@ const initializeScroll = function initializeScroll() {
 +          marker.setAttribute('data-aos-observer', '');
-@@ -107,6 +147,13 @@ const initializeScroll = function initializeScroll() {
+@@ -107,6 +143,13 @@ const initializeScroll = function initializeScroll() {
 -  window.addEventListener(
 -    'scroll',
 -    throttle(() => {
 -      handleScroll($aosElements, options.once);
 -    }, options.throttleDelay)
 -  );
-+  if (scrollHandler && scrollHandlerDelay !== options.throttleDelay) {
++  if (scrollHandler && (!legacyElements.length || scrollHandlerDelay !== options.throttleDelay)) {
 +    scrollHandler.cancel();
 +    window.removeEventListener('scroll', scrollHandler);
 +    scrollHandler = null;
 +  }
 +
-+  if (!scrollHandler) {
++  if (legacyElements.length && !scrollHandler) {
 +    scrollHandler = throttle(() => {
 +      handleScroll(legacyElements, options.once);
 +    }, options.throttleDelay);
 +    scrollHandlerDelay = options.throttleDelay;
 +    window.addEventListener('scroll', scrollHandler);
 +  }
-@@ -183,0 +231 @@ const init = function init(settings) {
+@@ -183,0 +227 @@ const init = function init(settings) {
 +  const wasInitialized = initialized;
-@@ -207,0 +256,2 @@ const init = function init(settings) {
+@@ -207,0 +252,2 @@ const init = function init(settings) {
 +  } else {
 +    observer.disconnect();
-@@ -214,0 +265,2 @@ const init = function init(settings) {
+@@ -214,0 +261,2 @@ const init = function init(settings) {
 +    clearListeners();
 +    observer.disconnect();
-@@ -235,9 +287,19 @@ const init = function init(settings) {
+@@ -235,9 +283,19 @@ const init = function init(settings) {
 -  if (['DOMContentLoaded', 'load'].indexOf(options.startEvent) === -1) {
 -    // Listen to options.startEvent and initialize AOS
 -    document.addEventListener(options.startEvent, function() {
@@ -107,13 +115,13 @@ index c386419..c10dd98 100644
 +      };
 +      startEventTarget.addEventListener(startEventName, startEventHandler);
 +    }
-@@ -250 +312,4 @@ const init = function init(settings) {
+@@ -250 +308,4 @@ const init = function init(settings) {
 -    // Initialize AOS if default startEvent was already fired
 +    if (startEventHandler) {
 +      startEventTarget.removeEventListener(startEventName, startEventHandler);
 +      startEventHandler = null;
 +    }
-@@ -257,4 +322,10 @@ const init = function init(settings) {
+@@ -257,4 +318,10 @@ const init = function init(settings) {
 -  window.addEventListener(
 -    'resize',
 -    debounce(refresh, options.debounceDelay, true)
@@ -128,7 +136,7 @@ index c386419..c10dd98 100644
 +    resizeHandlerDelay = options.debounceDelay;
 +    window.addEventListener('resize', resizeHandler);
 +  }
-@@ -262,4 +333,12 @@ const init = function init(settings) {
+@@ -262,4 +329,12 @@ const init = function init(settings) {
 -  window.addEventListener(
 -    'orientationchange',
 -    debounce(refresh, options.debounceDelay, true)

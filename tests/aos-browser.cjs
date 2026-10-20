@@ -9,7 +9,7 @@ const args = Object.fromEntries(process.argv.slice(2).reduce((pairs, value, inde
 	return pairs
 }, []))
 const mode = args.mode || 'contract'
-const variants = Object.fromEntries(['control', 'candidate', 'prototype'].map(name => [name, path.resolve(args[name] || process.cwd())]))
+const variants = Object.fromEntries(['control', 'candidate'].map(name => [name, path.resolve(args[name] || process.cwd())]))
 const output = path.resolve(args.output || '/private/tmp/anfb-aos-results')
 const browserType = ({ chromium, firefox, webkit })[args.browser || 'chromium']
 const browserPath = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
@@ -47,7 +47,7 @@ function createServer() {
 			response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
 			return response.end(page.replaceAll('/VARIANT', `/${url.searchParams.get('variant') || 'control'}`))
 		}
-		const match = url.pathname.match(/^\/(control|candidate|prototype)\/build\/(aos\.js|init\.js|aos\.css)$/)
+		const match = url.pathname.match(/^\/(control|candidate)\/build\/(aos\.js|init\.js|aos\.css)$/)
 		if (!match) { response.writeHead(404); return response.end('Not found') }
 		const file = path.join(variants[match[1]], 'build', match[2])
 		if (!fs.existsSync(file)) { response.writeHead(404); return response.end('Missing asset: ' + file) }
@@ -106,44 +106,24 @@ async function geometryContracts(browser, base, variant) {
 		try {
 			await page.goto(`${base}/geometry?${query}`)
 			await page.waitForFunction(() => window.AOS)
-			const prototypeBefore = variant === 'prototype' ? await page.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight })) : null
-			const beforeScreenshot = variant === 'prototype' && testCase.label === 'top-bottom' ? await page.screenshot() : null
 			const geometry = await page.evaluate(async () => {
 				const subject = document.querySelector('#subject')
 				window.scrollTo(0, Number(new URLSearchParams(location.search).get('initialScroll') || 0))
 				const aosTop = element => { let top = 0; while (element && !Number.isNaN(element.offsetTop)) { top += element.offsetTop - (element.tagName !== 'BODY' ? element.scrollTop : 0); element = element.offsetParent }; return top }
 				const reference = document.querySelector('#anchor-target') || subject
-				if (new URLSearchParams(location.search).get('variant') === 'prototype') return { top: aosTop(reference), height: reference.offsetHeight, viewport: innerHeight, scrollY, initialized: true }
 				document.dispatchEvent(new Event('anfb:geometry:start'))
 				await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
 				return { top: aosTop(reference), height: reference.offsetHeight, viewport: window.innerHeight, scrollY: window.scrollY, initialized: subject.classList.contains('aos-init'), animated: subject.classList.contains('aos-animate') }
 			})
-			if (variant !== 'prototype') assert(geometry.initialized, `${variant}: ${testCase.label} did not initialize on its start event`)
+			assert(geometry.initialized, `${variant}: ${testCase.label} did not initialize on its start event`)
 			const anchor = testCase.anchor || testCase.globalAnchor || 'top-bottom'
 			if (variant === 'candidate') {
 				const markerCount = await page.locator('[data-aos-observer]').count()
-				const expectedMarkers = anchor === 'top-bottom' ? (testCase.mirror && !testCase.once ? 2 : 1) : 0
+				const expectedMarkers = testCase.mirror && !testCase.once ? 2 : 1
 				assert.equal(markerCount, expectedMarkers, `${variant}: ${testCase.label} used the unexpected detector`)
 			}
 			const anchorHeight = geometry.height
 			const threshold = getTrigger(anchor, geometry.top, anchorHeight, geometry.viewport, testCase.offsetIn) + Number(args.geometryBias || 0)
-			if (variant === 'prototype') {
-				await page.addScriptTag({ path: path.join(__dirname, 'fixtures/aos-intersection-prototype.js') })
-				await page.evaluate(({ enter, mirror, once, offsetOut, throttleDelay, top, height }) => {
-					const element = document.querySelector('#subject')
-					const exit = top + height - offsetOut
-					window.__ioRun = AOSIOPrototype.start([{ element, enter, exit, mirror, once }], throttleDelay)
-				}, { enter: threshold, mirror: testCase.mirror || false, once: testCase.once || false, offsetOut: testCase.offsetOut, throttleDelay: testCase.throttleDelay || 0, top: geometry.top, height: anchorHeight })
-				await page.waitForFunction(() => window.__ioRun?.stats.callbacks > 0)
-				if (beforeScreenshot) {
-					const afterScreenshot = await page.screenshot()
-					assert(beforeScreenshot.equals(afterScreenshot), `${variant}: hidden markers changed the rendered screenshot`)
-					fs.writeFileSync(path.join(output, 'geometry-before.png'), beforeScreenshot)
-					fs.writeFileSync(path.join(output, 'geometry-after.png'), afterScreenshot)
-				}
-				if (testCase.throttleDelay) await page.evaluate(() => window.__ioRun.holdThrottleWindow())
-				if (testCase.initialScroll) assert(await page.locator('#subject').evaluate(element => element.classList.contains('aos-animate')), `${variant}: ${testCase.label} did not initialize after restored scroll`)
-			}
 			if (testCase.nestedScroller) {
 				const nested = await page.evaluate(async () => {
 					const scroller = document.querySelector('#scroller')
@@ -156,26 +136,7 @@ async function geometryContracts(browser, base, variant) {
 				})
 				assert.equal(nested.animatedWhileNestedScrolling, false, `${variant}: nested scroll unexpectedly triggered the animation`)
 			}
-			let directComparison = null
-			if (variant === 'prototype' && ['transformed-target', 'offscreen-horizontal'].includes(testCase.label)) {
-				directComparison = await page.evaluate(async ({ label, threshold }) => {
-					const target = document.querySelector('#subject')
-					let directIntersecting
-					const observer = new IntersectionObserver(entries => { directIntersecting = entries.at(-1).isIntersecting })
-					observer.observe(target)
-					await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-					window.scrollTo(0, label === 'transformed-target' ? threshold - 200 : threshold)
-					await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))))
-					const result = { directIntersecting, markerAnimated: target.classList.contains('aos-animate'), rect: target.getBoundingClientRect().toJSON() }
-					observer.disconnect()
-					window.scrollTo(0, 0)
-					await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-					return result
-				}, { label: testCase.label, threshold })
-				assert.notEqual(directComparison.directIntersecting, directComparison.markerAnimated, `${variant}: direct target observation did not show the expected geometry mismatch`)
-			}
 			const results = []
-			let prototypeEvidence = null
 			const targetYs = new Set([Math.floor(threshold) - 1, Math.floor(threshold), Math.ceil(threshold), Math.ceil(threshold) + 1].map(y => Math.max(0, y)))
 			if (testCase.mirror) {
 				const out = geometry.top + anchorHeight - testCase.offsetOut
@@ -196,96 +157,34 @@ async function geometryContracts(browser, base, variant) {
 				}, target)
 				const out = geometry.top + anchorHeight - testCase.offsetOut
 				const expected = actual.scrollY >= threshold && (testCase.once || !testCase.mirror || actual.scrollY < out)
-				if (variant === 'prototype' || (testCase.throttleDelay && actual.animated !== expected)) {
+				if (testCase.throttleDelay && actual.animated !== expected) {
 					const settleStarted = Date.now()
 					await page.waitForFunction(animated => document.querySelector('#subject').classList.contains('aos-animate') === animated, expected, { timeout: testCase.throttleDelay ? 600 : 200 })
 					actual.responseMs += Date.now() - settleStarted
-					if (variant === 'prototype' && testCase.throttleDelay && actual.scrollY === threshold) actual.throttleIntervalMs = await page.evaluate(() => window.__ioRun.stats.lastApplyMs - window.__ioRun.stats.throttleWindowStartMs)
 				}
 				const settled = await page.locator('#subject').evaluate(element => element.classList.contains('aos-animate'))
 				assert.equal(settled, expected, `${variant}: ${testCase.label} at scrollY=${actual.scrollY}, expected threshold=${threshold}`)
-				if (variant === 'prototype' && testCase.throttleDelay && actual.scrollY === threshold) assert(actual.throttleIntervalMs >= 110 && actual.throttleIntervalMs < 300, `${variant}: throttle interval was ${actual.throttleIntervalMs}ms`)
 				results.push({ ...actual, animated: settled })
 			}
-			if (variant === 'prototype' && ['top-bottom', 'mirror-entry-exit', 'transformed-target', 'offscreen-horizontal', 'restored-scroll'].includes(testCase.label)) {
-				const beforeJump = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }))
-				for (const [target, expected] of [[await page.evaluate(() => document.documentElement.scrollHeight - innerHeight), true], [0, false]]) {
-					const jumped = await page.evaluate(async targetY => {
-						window.scrollTo(0, targetY)
+			if (variant === 'candidate' && ['top-bottom', 'mirror-entry-exit', 'once-over-mirror', 'transformed-target', 'offscreen-horizontal', 'restored-scroll'].includes(testCase.label)) {
+				const wasAnimatedBeforeJump = await page.locator('#subject').evaluate(element => element.classList.contains('aos-animate'))
+				for (const targetY of [await page.evaluate(() => document.documentElement.scrollHeight - innerHeight), 0]) {
+					const jumped = await page.evaluate(async y => {
+						window.scrollTo(0, y)
 						await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))))
 						return { scrollY, animated: document.querySelector('#subject').classList.contains('aos-animate') }
-					}, target)
-					const shouldAnimate = expected && jumped.scrollY >= threshold && (testCase.once || !testCase.mirror || jumped.scrollY < geometry.top + anchorHeight - testCase.offsetOut)
-					assert.equal(jumped.animated, shouldAnimate, `${variant}: ${testCase.label} jump at scrollY=${jumped.scrollY}`)
+					}, targetY)
+					const expectedAfterJump = testCase.once ? (wasAnimatedBeforeJump || jumped.scrollY >= threshold) : jumped.scrollY >= threshold && (!testCase.mirror || jumped.scrollY < geometry.top + anchorHeight - testCase.offsetOut)
+					assert.equal(jumped.animated, expectedAfterJump, `${variant}: ${testCase.label} jump at scrollY=${jumped.scrollY}`)
 				}
-				prototypeEvidence = await page.evaluate(async () => {
-					const dimensions = { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }
-					const stats = { ...window.__ioRun.stats }
-					window.__ioRun.cleanup()
-					const markerCount = document.querySelectorAll('i[data-edge]').length
-					const callbacks = window.__ioRun.stats.callbacks
-					window.scrollTo(0, 1)
-					await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-					return { dimensions, stats, markerCount, callbacksAfterCleanup: window.__ioRun.stats.callbacks - callbacks }
-				})
-				assert.deepEqual(prototypeEvidence.dimensions, prototypeBefore, `${variant}: ${testCase.label} markers changed document dimensions`)
-				assert.equal(prototypeEvidence.markerCount, 0, `${variant}: ${testCase.label} left markers after cleanup`)
-				assert.equal(prototypeEvidence.callbacksAfterCleanup, 0, `${variant}: ${testCase.label} delivered callbacks after cleanup`)
 			}
 			if (testCase.position !== 'fixed' && !testCase.hidden) assert.equal(geometry.top, testCase.anchorTop ?? 1800, `${variant}: ${testCase.label} reference top changed`)
 			assert.equal(geometry.height, testCase.hidden ? 0 : testCase.anchorTop !== undefined ? 101 : testCase.height ?? 101, `${variant}: ${testCase.label} reference height changed`)
-			if (testCase.initialScroll && variant !== 'prototype') assert(geometry.animated, `${variant}: ${testCase.label} did not initialize after restored scroll`)
-			observed.push({ label: testCase.label, threshold, initialScroll: testCase.initialScroll || 0, results, ...(directComparison ? { directComparison } : {}), ...(prototypeEvidence ? { prototype: prototypeEvidence } : {}) })
+			if (testCase.initialScroll) assert(geometry.animated, `${variant}: ${testCase.label} did not initialize after restored scroll`)
+			observed.push({ label: testCase.label, threshold, initialScroll: testCase.initialScroll || 0, results })
 		} finally { await page.close() }
 	}
 	return observed
-}
-
-async function prototypeScale(browser, base) {
-	const samples = []
-	for (const count of [30, 500, 1000]) {
-		const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
-		try {
-			await page.goto(`${base}/geometry?variant=prototype`)
-			await page.addScriptTag({ path: path.join(__dirname, 'fixtures/aos-intersection-prototype.js') })
-			const result = await page.evaluate(async count => {
-				const items = []
-				for (let i = 0; i < count; i++) {
-					const element = document.createElement('div')
-					element.dataset.aos = 'fade-up'
-					element.style.height = '1px'
-					document.body.append(element)
-					const enter = 100 + i * 4
-					items.push({ element, enter, exit: enter + (i % 300), once: i % 2 === 0, mirror: i % 3 === 0 })
-				}
-				const before = { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }
-				const started = performance.now()
-				window.__ioScale = AOSIOPrototype.start(items)
-				await new Promise(resolve => {
-					const timeout = setTimeout(resolve, 3000)
-					const check = () => {
-						if (window.__ioScale.stats.entries < count * 2) return requestAnimationFrame(check)
-						clearTimeout(timeout)
-						resolve()
-					}
-					check()
-				})
-				const elapsedMs = performance.now() - started
-				const after = { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }
-				const stats = { ...window.__ioScale.stats }
-				window.__ioScale.cleanup()
-				return { count, elapsedMs, before, after, stats, markersAfterCleanup: document.querySelectorAll('i[data-edge]').length }
-			}, count)
-			assert.equal(result.stats.targets, count * 2, `${count} targets should produce two markers each`)
-			assert.equal(result.stats.entries, count * 2, `${count} targets should receive an initial IO notification`)
-			assert.equal(result.stats.recordsVisited, count, `${count} targets should update only affected records`)
-			assert.equal(result.stats.observerCount, 1, `${count} targets should share one observer`)
-			assert.deepEqual(result.after, result.before, `${count} markers changed document dimensions`)
-			assert.equal(result.markersAfterCleanup, 0, `${count} markers survived cleanup`)
-			samples.push(result)
-		} finally { await page.close() }
-	}
-	return samples
 }
 
 async function contracts(browser, base, variant) {
@@ -316,9 +215,9 @@ async function contracts(browser, base, variant) {
 			return { afterInit, after100Refresh, after100RefreshHard, after20Reinit: active('scroll'), load: active('load'), resize: active('resize'), orientationchange: active('orientationchange'), observersAfterInit, observersAfter100RefreshHard, observersAfter20Reinit: window.__activeObservers.size, observersDisabled, updatedOptions }
 		})
 		if (variant === 'candidate') {
-			assert.equal(listenerCounts.after100Refresh, 1, `${variant}: refresh must keep one scroll listener`)
-			assert.equal(listenerCounts.after100RefreshHard, 1, `${variant}: refreshHard must keep one scroll listener`)
-			assert.equal(listenerCounts.after20Reinit, 1, `${variant}: reinit must keep one scroll listener`)
+			assert.equal(listenerCounts.after100Refresh, 0, `${variant}: refresh must not add a scroll listener on the IO path`)
+			assert.equal(listenerCounts.after100RefreshHard, 0, `${variant}: refreshHard must not add a scroll listener on the IO path`)
+			assert.equal(listenerCounts.after20Reinit, 0, `${variant}: reinit must not add a scroll listener on the IO path`)
 			assert.equal(listenerCounts.load, 0, `${variant}: completed initialization left a load listener attached`)
 			assert.equal(listenerCounts.resize, 1, `${variant}: reinit duplicated the resize listener`)
 			assert.equal(listenerCounts.orientationchange, 1, `${variant}: reinit duplicated the orientation listener`)
@@ -497,62 +396,8 @@ async function contracts(browser, base, variant) {
 	return { variant, anchors: anchors.length, geometry, api: true, once: true, mirror: true, dynamicRefresh: true, mutationRefreshes, pageOffsetReads, timings, externalOverride: true, customStartEventRebind: variant === 'candidate', listenerCounts }
 }
 
-async function benchmark(browser, base) {
-	const samples = []
-	const counts = (args.counts || '0,30,100,500,1000').split(',').map(Number)
-	const viewports = args.viewport ? [{ name: args.viewport, width: args.viewport === 'mobile' ? 390 : 1280, height: args.viewport === 'mobile' ? 844 : 800 }] : [{ name: 'desktop', width: 1280, height: 800 }, { name: 'mobile', width: 390, height: 844 }]
-	const cpus = args.cpu ? [Number(args.cpu)] : [1, 4]
-	const repetitions = Number(args.samples || 5)
-	assert(counts.length && counts.every(count => Number.isInteger(count) && count >= 0 && count <= 1000), 'Invalid --counts')
-	assert(viewports.every(viewport => ['desktop', 'mobile'].includes(viewport.name)), 'Invalid --viewport')
-	assert(cpus.every(cpu => [1, 4].includes(cpu)), 'Invalid --cpu')
-	assert(Number.isInteger(repetitions) && repetitions >= 1 && repetitions <= 10, 'Invalid --samples')
-	for (const count of counts) {
-		for (const viewport of viewports) {
-			for (const cpu of cpus) {
-				for (let run = 0; run <= repetitions; run++) {
-					for (const variant of ((run + count + cpu) % 2 ? ['candidate', 'control'] : ['control', 'candidate'])) {
-						const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } })
-						const session = await context.newCDPSession(await context.newPage())
-						await session.send('Emulation.setCPUThrottlingRate', { rate: cpu })
-						const page = context.pages()[0]
-						await page.goto(`${base}/fixture?variant=${variant}&count=${count}`)
-						await page.waitForFunction(() => window.AOS)
-						const metrics = await page.evaluate(async () => {
-							const resources = performance.getEntriesByType('resource').filter(r => /\/build\/(init|aos)\.js/.test(r.name))
-							const start = performance.now(); AOS.refreshHard(); const refreshMs = performance.now() - start
-							const refresh100Start = performance.now(); for (let i = 0; i < 100; i++) AOS.refresh(); const refresh100Ms = performance.now() - refresh100Start
-							const refreshHard100Start = performance.now(); for (let i = 0; i < 100; i++) AOS.refreshHard(); const refreshHard100Ms = performance.now() - refreshHard100Start
-							const scrollListenersAfter100 = window.__listeners.get('scroll')?.size || 0
-							const scrollStart = performance.now(); window.scrollTo(0, document.body.scrollHeight / 2); window.dispatchEvent(new Event('scroll')); await new Promise(resolve => setTimeout(resolve, 130)); const scrollResponseMs = performance.now() - scrollStart
-							const originalQuerySelectorAll = document.querySelectorAll.bind(document)
-							let mutationRefreshCalls = 0
-							document.querySelectorAll = selector => {
-								if (selector === '[data-aos]') mutationRefreshCalls++
-								return originalQuerySelectorAll(selector)
-							}
-							const mutationStart = performance.now()
-							for (let i = 0; i < 100; i++) {
-								const element = document.createElement('div')
-								element.dataset.aos = 'fade-up'
-								document.body.append(element)
-							}
-							await new Promise(resolve => requestAnimationFrame(resolve))
-							const mutationBurstMs = performance.now() - mutationStart
-							return { aosReadyMs: window.__aosReadyMs, assetTransferMs: resources.reduce((sum, resource) => sum + resource.duration, 0), refreshMs, refresh100Ms, refreshHard100Ms, scrollResponseMs, scrollListenersAfter100, mutationRefreshCalls, mutationBurstMs }
-						})
-						if (run > 0) samples.push({ variant, count, viewport: viewport.name, cpu, sample: run, ...metrics })
-						await context.close()
-					}
-				}
-			}
-		}
-	}
-	return samples
-}
-
 ;(async () => {
-	assert(['contract', 'prototype', 'benchmark'].includes(mode), `Unknown mode: ${mode}`)
+	assert(['contract', 'benchmark'].includes(mode), `Unknown mode: ${mode}`)
 	for (const name of ['control', 'candidate']) for (const asset of ['aos.js', 'init.js', 'aos.css']) assert(fs.existsSync(path.join(variants[name], 'build', asset)), `Missing ${name} build/${asset}`)
 	fs.mkdirSync(output, { recursive: true })
 	const server = createServer()
@@ -566,8 +411,6 @@ async function benchmark(browser, base) {
 		const base = `http://127.0.0.1:${server.address().port}`
 		const results = mode === 'contract'
 			? await Promise.all([contracts(browser, base, 'control'), contracts(browser, base, 'candidate')])
-			: mode === 'prototype'
-				? [{ variant: 'prototype', geometry: await geometryContracts(browser, base, 'prototype'), scale: await prototypeScale(browser, base) }]
 				: await benchmark(browser, base)
 		const file = path.join(output, `${mode}-${args.browser || 'chromium'}.json`)
 		fs.writeFileSync(file, JSON.stringify({ mode, browser: args.browser || 'chromium', results }, null, 2) + '\n')

@@ -42,7 +42,7 @@ Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones
 **Criterios de aceptación:**
 - [x] `top-bottom` usa IO con offset local/global y `data-aos-anchor`, once/mirror/eventos completos y aplicación del estado solo a objetivos afectados; preserva init/refresh, CSS y sus retornos observados.
 - [x] Los ocho placements restantes siguen operativos por una ruta temporal delimitada; sin barrido de nodos ya migrados. El controlador limpia recursos básicos, descarta callbacks antiguos y evita recursión por sus propias mutaciones desde este incremento.
-- [ ] El prototipo validado se incorpora al parche reproducible y se retira su implementación duplicada de pruebas; API pública y número de solicitudes sin ampliaciones.
+- [x] El prototipo validado se incorpora al parche reproducible y se retira su implementación duplicada de pruebas; API pública y número de solicitudes sin ampliaciones.
 
 **Verificación:** Regresión del caso migrado, contratos contra control, `npm test`, `npm run build`; comprobar instalación congelada y chunks/versión de AOS. Revisar observación activa y evento de entrada/salida real.
 
@@ -53,9 +53,9 @@ Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones
 **Descripción:** Aplicar el detector a las ocho combinaciones restantes y retirar el detector temporal por scroll, manteniendo intacta la geometría ya calculada por AOS.
 
 **Criterios de aceptación:**
-- [ ] Nueve placements y anclas externas/compartidas pasan límites, tamaños/offsets heterogéneos y la prioridad once/mirror; las transformaciones de animación no cambian umbrales ni provocan oscilaciones.
-- [ ] No queda listener propio de scroll ni recorrido completo de entradas en el camino IO normal; las notificaciones solo actualizan los objetivos afectados. Cargas inicialmente más allá de la salida y saltos en ambos sentidos producen el estado correcto.
-- [ ] Misma secuencia de clases/eventos observables en los casos estabilizados, con `detail` e IDs; no se inventan transiciones durante saltos ni se corrigen peculiaridades ajenas a la migración.
+- [x] Nueve placements y anclas externas/compartidas pasan límites, tamaños/offsets heterogéneos y la prioridad once/mirror; las transformaciones de animación no cambian umbrales ni provocan oscilaciones.
+- [x] No queda listener propio de scroll ni recorrido completo de entradas en el camino IO normal; las notificaciones solo actualizan los objetivos afectados. Cargas inicialmente más allá de la salida y saltos en ambos sentidos producen el estado correcto.
+- [x] Misma secuencia de clases/eventos observables en los casos estabilizados, con `detail` e IDs; no se inventan transiciones durante saltos ni se corrigen peculiaridades ajenas a la migración.
 
 **Verificación:** Matriz geométrica completa en bundles reales y comparación de eventos; casos con valores explícitos de throttle; `npm test`, `npm run build` y diff de parche/lock/build.
 
@@ -63,8 +63,8 @@ Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones
 
 ### Checkpoint B — Detector completo
 
-- [ ] Nueve anclajes y comportamientos comparados; sin barrido global por scroll ni ruta temporal restante.
-- [ ] Revisar con el usuario diferencias de geometría, cadencia, eventos y coste de recursos antes de continuar.
+- [x] Nueve anclajes y comportamientos comparados; sin barrido global por scroll ni ruta temporal restante.
+- [x] El usuario autorizó continuar el plan. Resultado del contrato: Chromium conserva geometría y estado; la ruta IO no instala scroll listeners. Coste global y otros motores se miden en tareas posteriores.
 
 ## 05 — Estabilizar refresh y mutaciones
 
