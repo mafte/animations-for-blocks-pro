@@ -10,3 +10,6 @@ onlyBuiltDependencies:
 
 overrides:
   '@babel/runtime@<7.26.10': '>=7.26.10'
+
+patchedDependencies:
+  aos@3.0.0-beta.6: patches/aos@3.0.0-beta.6.patch

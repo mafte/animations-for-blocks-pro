@@ -28,24 +28,24 @@
 
 ### Checkpoint A — Antes de modificar el motor
 
-- [ ] Contratos/perfiles documentados; el arnés detecta diferencias y no atribuye mejoras a control/control.
-- [ ] Revisar con el usuario prioridades y límites antes de continuar.
+- [x] Contratos/mediciones de baseline documentados; el arnés detecta diferencias y el ruido control/control está medido.
+- [x] El usuario aprobó continuar con la evaluación y los cambios priorizados en el plan.
 
 ## 04 — Compilar fuentes originales reproducibles
 
-- [ ] Parche pnpm exacto que retire solo import SCSS interno; importar fuente desde src/init.js manteniendo CSS dist actual.
-- [ ] Conservar MIT/procedencia y aplicar parche con instalación congelada limpia, sin ignorar fallos.
-- [ ] Misma caracterización funcional, chunks esperados y ausencia de CSS duplicado/recursos faltantes.
+- [x] Parche pnpm exacto que retire solo import SCSS interno; importar fuente desde src/init.js manteniendo CSS dist actual.
+- [x] Conservar MIT/procedencia y aplicar parche con instalación congelada limpia, sin ignorar fallos.
+- [x] Misma caracterización funcional, chunks esperados y ausencia de CSS duplicado/recursos faltantes.
 
 **Verificar:** patch/patch-commit e instalación limpia del plan, npm test, npm run build, contratos y análisis de chunks/tamaños. **Depende:** checkpoint A. **Archivos:** patches/aos@3.0.0-beta.6.patch, pnpm-workspace.yaml, pnpm-lock.yaml, src/init.js, licenses/aos.txt; build generado. Si pnpm exige más configuración, separar esa preparación. **Tamaño:** M.
 
 ## 05 — Corregir acumulación de listeners
 
-- [ ] Un listener AOS de scroll tras 100 refresh y 100 refreshHard, incluidos resize/orientación/load tardío.
-- [ ] Reinit mantiene eventos/observador únicos, ajustes actualizados y cancelación de trabajo pendiente, conservando throttle/startEvent y listeners ajenos.
-- [ ] Regresión falla en original y pasa en candidato; mismas clases/eventos/geometría.
+- [x] Un listener AOS de scroll tras 100 refresh y 100 refreshHard, incluidos resize/orientación/load tardío.
+- [x] Reinit mantiene eventos/observador únicos, ajustes actualizados y cancelación de trabajo pendiente, conservando throttle/startEvent y listeners ajenos.
+- [x] Regresión falla en original y pasa en candidato; mismas clases/eventos/geometría.
 
-**Verificar:** nuevo node tests/aos-engine.mjs, incluido en npm test mediante package.json; build, contratos y benchmark de refrescos. **Depende:** 04. **Archivos:** parche AOS, tests/aos-engine.mjs, package.json, docs/aos-evaluation.md; lockfile/build mecánicos. **Tamaño:** M.
+**Verificar:** tests/aos-browser.cjs --mode contract contra control y candidato; la regresión falla en el original. npm test, build y benchmark tras 100 refresh/refreshHard. El contrato de navegador es un runner separado de npm test porque necesita Chrome y HTTP local. **Depende:** 04. **Archivos:** parche AOS, tests/aos-browser.cjs, docs/aos-evaluation.md; lockfile/build mecánicos. **Tamaño:** M.
 
 ### Checkpoint B — Primera corrección
 

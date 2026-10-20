@@ -23,7 +23,7 @@ No se encontró una instalación WordPress local con `ANFB_TEST_SITE` definido e
 
 ## Observación inicial de AOS
 
-Una comprobación aislada de `AOS.refresh()`/`refreshHard()` sobre el bundle original detectó acumulación lineal de listeners de scroll: 1 tras init, 21 tras 20 `refresh()` y 41 tras otros 20 `refreshHard()`. Es una reproducción en VM de Node y queda pendiente cubrirla en navegador dentro de las tareas posteriores; aún no se ha cambiado el motor.
+Una comprobación aislada de `AOS.refresh()`/`refreshHard()` sobre el bundle original detectó acumulación lineal de listeners de scroll: 1 tras init, 21 tras 20 `refresh()` y 41 tras otros 20 `refreshHard()`. La reproducción en navegador se registró abajo: 2 al terminar la carga y 22 tras 20 `refreshHard()`. Aún no se ha cambiado el motor.
 
 ## Resultados de compatibilidad y rendimiento
 
@@ -74,3 +74,30 @@ El CSS AOS pesa 31380 bytes (2868 gzip); el JS AOS pesa 13686 (4827 gzip). El in
 - Firefox/WebKit/Safari no se validaron. En esta etapa solo está medido Chrome; la disponibilidad de otros binarios se reexaminará para aceptación.
 - Los nueve anclajes se ejercitan funcionalmente, pero todavía no se contrastan sus píxeles exactos de umbral. El runner es una fixture sintética y no mide FPS, compositor ni perfiles de CPU detallados.
 - `aos.css` comprimido ya representa ~2.8 KB; cualquier compactación debe superar la meta y conservar especificidad/cascada. Los resultados de control-control no muestran una oportunidad de JS por sí solos: los perfiles guiarán el siguiente paso.
+
+## Tarea 04 — Compilar la fuente original
+
+Se creó `patches/aos@3.0.0-beta.6.patch`, que solo retira el import SCSS interno no utilizado (`styles`) de `src/js/aos.js`. `src/init.js` importa directamente ese fuente; el CSS distribuido `aos/dist/aos.css` sigue siendo el que carga el plugin. La licencia MIT original está en `licenses/aos.txt`. La configuración y lockfile fijan el patch por hash, sin cambiar versiones de dependencias.
+
+`CI=true corepack pnpm install --frozen-lockfile --reporter=append-only` pasó con AOS parcheado; todas las 1553 dependencias se reutilizaron del store. Build completado dos veces con hashes idénticos. `npm test`: 42/42 pruebas y las comprobaciones runtime/init pasaron. La prueba Playwright de contratos fuente/control pasó en Chrome; ambos conservan la API, CSS, eventos, nueve placements, `once`/`mirror`, refresh dinámico y override. CSS AOS mantiene SHA-256 `53d3a1c5d6ecd68da49ad62a1143382717210194b13d6cfefa67ce87b58f7bd3`, sin duplicado.
+
+La fuente movió peso entre chunks: control `aos.js` 13686 B / 4827 gzip y `init.js` 2512 B / 1257 gzip; fuente `aos.js` 9361 B / 3499 gzip e `init.js` 5969 B / 2321 gzip. Total frontend: 16198 → 15330 B raw (-5.4%) y 6084 → 5820 gzip (-4.3%). `build/index.js` cambia solo 2 bytes raw/34 gzip tras reasignación de IDs de módulos al rebuild; no se cambia código de editor. El motor sigue cargándose como chunk dependiente antes de init y no se introduce otra solicitud.
+
+Comparación de fuente contra dist original en las mismas 200 muestras, Chrome y la misma matriz: para 500 elementos, mediana/p95 (control → fuente) fue listo 26.4/66.0 → 27.2/74.1 ms; transferencia JS 8.8/11.9 → 8.6/14.1 ms; `refreshHard` 2.7/8.8 → 2.2/8.9 ms; respuesta a scroll 160.0/246.2 → 160.8/246.1 ms. Esas variaciones no muestran una mejora estable frente al ruido registrado. La compilación de fuente se acepta como preparación para editar y probar correcciones localizadas, no como optimización de rendimiento por sí misma. JSON: `/private/tmp/anfb-aos-source-results/benchmark-chromium.json`, SHA-256 `692fa98dc654d529fd1063d8e12b01b3d517b4f8afbd7600254340dd746a4097`.
+
+## Tarea 05 — Un solo ciclo de listeners
+
+La prueba de regresión con el dist original falla: 2 listeners de scroll al cargar, 102 tras 100 `refresh()`, 202 tras 100 `refreshHard()` y 225 después de 20 reinit. El bundle candidato mantiene 1 en todos esos puntos. La corrección reutiliza el throttle de scroll; si cambia `throttleDelay`, cancela el callback pendiente y reemplaza ese handler. Resize/orientación, observer y startEvent también se conservan únicos, o se desconectan cuando `disableMutationObserver` pasa a true. Reinit actualiza duración/easing, y el test de startEvent confirma que el evento viejo deja de activar AOS.
+
+El contrato pasa en Chrome para los dos bundles; en el control las aserciones específicas de idempotencia permanecen como defectos caracterizados y el candidato cumple una instancia de cada listener/observer AOS. Se verifica inserción automática por MutationObserver, API/eventos, anchors, `once`/`mirror`, override externo y opciones. JSON final: `/private/tmp/anfb-aos-listener-fix/contract-chromium.json`, SHA-256 `aba12babe52851c22320f25d391bff6d934e7b953c01e5f203673ec88179a9ef`.
+
+Tras 100 `refresh()` + 100 `refreshHard()` y un evento de scroll, Chrome midió:
+
+| Elementos | Respuesta scroll mediana control/candidato | p95 control/candidato | AOS listeners de scroll control/candidato |
+| ---: | ---: | ---: | ---: |
+| 500 | 182.0 / 160.6 ms (-11.8%) | 326.9 / 244.6 ms | 203 / 1 |
+| 1000 | 259.7 / 218.3 ms (-15.9%) | 724.5 / 489.9 ms | 203 / 1 |
+
+Cada conteo tiene 20 muestras/variante que combinan dos viewports y CPU ×1/×4. El control-control focal desktop/CPU ×1 tuvo ruido p95 emparejado de 0.85% en 500 elementos y 3.56% en 1000; la mejora mediana en esa celda fue 11.0% y 15.8%. Las llamadas a refresh no mejoran de forma relevante por sí solas; el ahorro viene de procesar el scroll una vez en lugar de una vez por listener acumulado. JSON completo: `/private/tmp/anfb-aos-listener-bench/benchmark-chromium.json` (SHA-256 `a9d5f2487178b3d50ee367f81effdb5fb1d4864a7dcbe12b51e5ce935ed76c17`); control-control: `/private/tmp/anfb-aos-listener-noise/benchmark-chromium.json` (SHA-256 `eb0e993e1e87b6deacecc7755c807516d3d0c8e92920435d9a216fff4dcf436b`).
+
+Con la corrección, el total frontend `aos.js` + `init.js` queda en 16194 B raw / 6074 gzip frente al dist inicial de 16198 / 6084; el ahorro neto de bytes es despreciable (4 B raw, 10 gzip). `aos.css` permanece idéntico. Se generaron dos builds con hashes idénticos. `npm test` pasa con 42/42 pruebas; `pnpm install --frozen-lockfile` y Playwright contract pasan. `build/aos.js` SHA-256 `abb1796b654d1766de506bc83701f4b77d05e7bef395bd273548e13f04ffafe0`, `build/init.js` `b3ee71e1857edd4598efb48ef04f6fcb492d01f11c32c6f7398c1b581060de04`.

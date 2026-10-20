@@ -15,10 +15,10 @@ const browserType = ({ chromium, firefox, webkit })[args.browser || 'chromium']
 const browserPath = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const anchors = ['top-bottom', 'center-bottom', 'bottom-bottom', 'top-center', 'center-center', 'bottom-center', 'top-top', 'center-top', 'bottom-top']
 
-function fixture(override = false, anchor = '', count = 0) {
+function fixture(override = false, anchor = '', count = 0, customStart = false) {
 	const placement = anchors.includes(anchor) ? ` data-aos-anchor-placement="${anchor}"` : ''
 	const items = Array.from({ length: Math.min(1000, Math.max(0, count)) }, (_, i) => `<div class="bench" data-aos="fade-up" style="height:12px">${i}</div>`).join('')
-	return `<!doctype html><html class="no-js"><head><meta charset="utf-8"><link rel="stylesheet" href="/VARIANT/build/aos.css"><style>#spacer{height:1600px}[data-aos]{transition-duration:0s}</style><script>document.documentElement.classList.remove('no-js');window.anfbAosSettings={offset:0,duration:0,delay:0};window.__scrollListeners=[];const __add=window.addEventListener;window.addEventListener=function(type,listener,options){if(type==='scroll')window.__scrollListeners.push(listener);return __add.call(this,type,listener,options)};let __aos;Object.defineProperty(window,'AOS',{configurable:true,get(){return __aos},set(engine){__aos=engine;window.__aosReadyMs=performance.now()}});${override ? 'window.AOS={init:function(){window.__externalInit=(window.__externalInit||0)+1}};' : ''}</script></head><body><div id="spacer"></div><div id="subject" data-aos="fade-up" data-aos-id="contract" data-aos-offset="0"${placement} style="height:80px"></div>${items}<div style="height:1800px"></div><script defer src="/VARIANT/build/aos.js"></script><script defer src="/VARIANT/build/init.js"></script></body></html>`
+	return `<!doctype html><html class="no-js"><head><meta charset="utf-8"><link rel="stylesheet" href="/VARIANT/build/aos.css"><style>#spacer{height:1600px}[data-aos]{transition-duration:0s}</style><script>document.documentElement.classList.remove('no-js');window.anfbAosSettings={offset:0,duration:0,delay:0${customStart ? ",startEvent:'anfb:test'" : ''}};window.__listeners=new Map();const __add=window.addEventListener,__remove=window.removeEventListener;window.addEventListener=function(type,listener,options){if(!window.__listeners.has(type))window.__listeners.set(type,new Set());window.__listeners.get(type).add(listener);return __add.call(this,type,listener,options)};window.removeEventListener=function(type,listener,options){window.__listeners.get(type)?.delete(listener);return __remove.call(this,type,listener,options)};window.__activeObservers=new Set();const __MutationObserver=window.MutationObserver;window.MutationObserver=class extends __MutationObserver{constructor(callback){super(callback);this.__aosObserver=new Error().stack.includes('/build/aos.js')}observe(...args){if(this.__aosObserver)window.__activeObservers.add(this);return super.observe(...args)}disconnect(){if(this.__aosObserver)window.__activeObservers.delete(this);return super.disconnect()}};let __aos;Object.defineProperty(window,'AOS',{configurable:true,get(){return __aos},set(engine){__aos=engine;window.__aosReadyMs=performance.now()}});${override ? 'window.AOS={init:function(){window.__externalInit=(window.__externalInit||0)+1}};' : ''}</script></head><body><div id="spacer"></div><div id="subject" data-aos="fade-up" data-aos-id="contract" data-aos-offset="0"${placement} style="height:80px"></div>${items}<div style="height:1800px"></div><script defer src="/VARIANT/build/aos.js"></script><script defer src="/VARIANT/build/init.js"></script></body></html>`
 }
 
 function createServer() {
@@ -26,7 +26,7 @@ function createServer() {
 		const url = new URL(request.url, 'http://localhost')
 		if (url.pathname === '/fixture') {
 			response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-			return response.end(fixture(url.searchParams.get('override') === '1', url.searchParams.get('anchor'), Number(url.searchParams.get('count'))).replaceAll('/VARIANT', `/${url.searchParams.get('variant') || 'control'}`))
+			return response.end(fixture(url.searchParams.get('override') === '1', url.searchParams.get('anchor'), Number(url.searchParams.get('count')), url.searchParams.get('startEvent') === '1').replaceAll('/VARIANT', `/${url.searchParams.get('variant') || 'control'}`))
 		}
 		const match = url.pathname.match(/^\/(control|candidate)\/build\/(aos\.js|init\.js|aos\.css)$/)
 		if (!match) { response.writeHead(404); return response.end('Not found') }
@@ -53,10 +53,35 @@ async function contracts(browser, base, variant) {
 		const api = await page.evaluate(() => ['init', 'refresh', 'refreshHard'].every(name => typeof window.AOS[name] === 'function'))
 		assert(api, `${variant}: public AOS API missing`)
 		listenerCounts = await page.evaluate(() => {
-			const afterInit = window.__scrollListeners.length
-			for (let i = 0; i < 20; i++) AOS.refreshHard()
-			return { afterInit, after20RefreshHard: window.__scrollListeners.length }
+			const active = type => window.__listeners.get(type)?.size || 0
+			const observersAfterInit = window.__activeObservers.size
+			const afterInit = active('scroll')
+			for (let i = 0; i < 100; i++) AOS.refresh()
+			const after100Refresh = active('scroll')
+			for (let i = 0; i < 100; i++) AOS.refreshHard()
+			const after100RefreshHard = active('scroll')
+			const observersAfter100RefreshHard = window.__activeObservers.size
+			for (let i = 0; i < 20; i++) AOS.init({ throttleDelay: 25 + i, debounceDelay: 10 + i })
+			AOS.init({ duration: 250, easing: 'linear' })
+			const updatedOptions = { duration: document.body.getAttribute('data-aos-duration'), easing: document.body.getAttribute('data-aos-easing') }
+			AOS.init({ disableMutationObserver: true })
+			const observersDisabled = window.__activeObservers.size
+			AOS.init({ disableMutationObserver: false })
+			return { afterInit, after100Refresh, after100RefreshHard, after20Reinit: active('scroll'), load: active('load'), resize: active('resize'), orientationchange: active('orientationchange'), observersAfterInit, observersAfter100RefreshHard, observersAfter20Reinit: window.__activeObservers.size, observersDisabled, updatedOptions }
 		})
+		if (variant === 'candidate') {
+			assert.equal(listenerCounts.after100Refresh, 1, `${variant}: refresh must keep one scroll listener`)
+			assert.equal(listenerCounts.after100RefreshHard, 1, `${variant}: refreshHard must keep one scroll listener`)
+			assert.equal(listenerCounts.after20Reinit, 1, `${variant}: reinit must keep one scroll listener`)
+			assert.equal(listenerCounts.load, 0, `${variant}: completed initialization left a load listener attached`)
+			assert.equal(listenerCounts.resize, 1, `${variant}: reinit duplicated the resize listener`)
+			assert.equal(listenerCounts.orientationchange, 1, `${variant}: reinit duplicated the orientation listener`)
+			assert.equal(listenerCounts.observersAfterInit, 1, `${variant}: expected one AOS mutation observer`)
+			assert.equal(listenerCounts.observersAfter100RefreshHard, 1, `${variant}: refreshHard duplicated the mutation observer`)
+			assert.equal(listenerCounts.observersAfter20Reinit, 1, `${variant}: reinit duplicated the mutation observer`)
+			assert.equal(listenerCounts.observersDisabled, 0, `${variant}: disableMutationObserver did not disconnect`)
+			assert.deepEqual(listenerCounts.updatedOptions, { duration: '250', easing: 'linear' }, `${variant}: reinit did not update global settings`)
+		}
 		const css = await page.locator('#subject').evaluate(element => getComputedStyle(element).opacity)
 		assert.equal(css, '0', `${variant}: initial AOS CSS state`)
 
@@ -70,6 +95,7 @@ async function contracts(browser, base, variant) {
 		assert(events)
 		await page.evaluate(() => window.scrollTo(0, document.querySelector('#subject').offsetTop))
 		await page.waitForFunction(() => document.querySelector('#subject').classList.contains('aos-animate'))
+		await page.waitForFunction(() => getComputedStyle(document.querySelector('#subject')).opacity === '1')
 		assert.equal(await page.locator('#subject').evaluate(el => getComputedStyle(el).opacity), '1')
 		const eventNames = await page.evaluate(() => window.__events.map(event => event[0]))
 		assert(eventNames.includes('in'), `${variant}: missing aos:in`)
@@ -92,7 +118,6 @@ async function contracts(browser, base, variant) {
 			dynamic.dataset.aos = 'fade-up'
 			dynamic.dataset.aosOffset = '0'
 			document.body.append(dynamic)
-			window.AOS.refreshHard()
 			window.scrollTo(0, document.body.scrollHeight)
 		})
 		await page.waitForFunction(() => document.querySelector('#dynamic').classList.contains('aos-animate'))
@@ -130,15 +155,36 @@ async function contracts(browser, base, variant) {
 		await override.waitForFunction(() => window.__externalInit === 1)
 		assert.equal(await override.evaluate(() => window.AOS.init instanceof Function), true)
 	} finally { await override.close() }
-	return { variant, anchors: anchors.length, api: true, once: true, mirror: true, dynamicRefresh: true, externalOverride: true, listenerCounts }
+	const customStart = await browser.newPage()
+	try {
+		await customStart.goto(`${base}/fixture?variant=${variant}&startEvent=1`)
+		await customStart.waitForFunction(() => window.AOS && document.readyState === 'complete')
+		assert.equal(await customStart.locator('#subject').evaluate(el => el.classList.contains('aos-init')), false)
+		await customStart.evaluate(() => window.AOS.init({ startEvent: 'anfb:later' }))
+		await customStart.evaluate(() => document.dispatchEvent(new Event('anfb:test')))
+		await customStart.waitForTimeout(30)
+		const oldStartTriggered = await customStart.locator('#subject').evaluate(el => el.classList.contains('aos-init'))
+		if (variant === 'candidate') assert.equal(oldStartTriggered, false, `${variant}: old startEvent remained bound`)
+		await customStart.evaluate(() => document.dispatchEvent(new Event('anfb:later')))
+		await customStart.waitForFunction(() => document.querySelector('#subject').classList.contains('aos-init'))
+	} finally { await customStart.close() }
+	return { variant, anchors: anchors.length, api: true, once: true, mirror: true, dynamicRefresh: true, externalOverride: true, customStartEventRebind: variant === 'candidate', listenerCounts }
 }
 
 async function benchmark(browser, base) {
 	const samples = []
-	for (const count of [0, 30, 100, 500, 1000]) {
-		for (const viewport of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'mobile', width: 390, height: 844 }]) {
-			for (const cpu of [1, 4]) {
-				for (let run = 0; run <= 5; run++) {
+	const counts = (args.counts || '0,30,100,500,1000').split(',').map(Number)
+	const viewports = args.viewport ? [{ name: args.viewport, width: args.viewport === 'mobile' ? 390 : 1280, height: args.viewport === 'mobile' ? 844 : 800 }] : [{ name: 'desktop', width: 1280, height: 800 }, { name: 'mobile', width: 390, height: 844 }]
+	const cpus = args.cpu ? [Number(args.cpu)] : [1, 4]
+	const repetitions = Number(args.samples || 5)
+	assert(counts.length && counts.every(count => Number.isInteger(count) && count >= 0 && count <= 1000), 'Invalid --counts')
+	assert(viewports.every(viewport => ['desktop', 'mobile'].includes(viewport.name)), 'Invalid --viewport')
+	assert(cpus.every(cpu => [1, 4].includes(cpu)), 'Invalid --cpu')
+	assert(Number.isInteger(repetitions) && repetitions >= 1 && repetitions <= 10, 'Invalid --samples')
+	for (const count of counts) {
+		for (const viewport of viewports) {
+			for (const cpu of cpus) {
+				for (let run = 0; run <= repetitions; run++) {
 					for (const variant of ((run + count + cpu) % 2 ? ['candidate', 'control'] : ['control', 'candidate'])) {
 						const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } })
 						const session = await context.newCDPSession(await context.newPage())
@@ -149,8 +195,11 @@ async function benchmark(browser, base) {
 						const metrics = await page.evaluate(async () => {
 							const resources = performance.getEntriesByType('resource').filter(r => /\/build\/(init|aos)\.js/.test(r.name))
 							const start = performance.now(); AOS.refreshHard(); const refreshMs = performance.now() - start
+							const refresh100Start = performance.now(); for (let i = 0; i < 100; i++) AOS.refresh(); const refresh100Ms = performance.now() - refresh100Start
+							const refreshHard100Start = performance.now(); for (let i = 0; i < 100; i++) AOS.refreshHard(); const refreshHard100Ms = performance.now() - refreshHard100Start
+							const scrollListenersAfter100 = window.__listeners.get('scroll')?.size || 0
 							const scrollStart = performance.now(); window.scrollTo(0, document.body.scrollHeight / 2); window.dispatchEvent(new Event('scroll')); await new Promise(resolve => setTimeout(resolve, 130)); const scrollResponseMs = performance.now() - scrollStart
-							return { aosReadyMs: window.__aosReadyMs, assetTransferMs: resources.reduce((sum, resource) => sum + resource.duration, 0), refreshMs, scrollResponseMs, scrollListenersAfterRefresh: window.__scrollListeners.length }
+							return { aosReadyMs: window.__aosReadyMs, assetTransferMs: resources.reduce((sum, resource) => sum + resource.duration, 0), refreshMs, refresh100Ms, refreshHard100Ms, scrollResponseMs, scrollListenersAfter100 }
 						})
 						if (run > 0) samples.push({ variant, count, viewport: viewport.name, cpu, sample: run, ...metrics })
 						await context.close()

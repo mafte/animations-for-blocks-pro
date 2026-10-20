@@ -1,4 +1,4 @@
-import AOS from 'aos'
+import AOS from 'aos/src/js/aos.js'
 import '../node_modules/aos/dist/aos.css'
 import './aos-custom.scss'
 

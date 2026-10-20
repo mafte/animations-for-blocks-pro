@@ -7,6 +7,11 @@ settings:
 overrides:
   '@babel/runtime@<7.26.10': '>=7.26.10'
 
+patchedDependencies:
+  aos@3.0.0-beta.6:
+    hash: 017384398c3cd2c6b9feade4fa39d7d2c7d7b38ff14c07325044bb679f75fbce
+    path: patches/aos@3.0.0-beta.6.patch
+
 importers:
 
   .:
@@ -15,12 +20,6 @@ importers:
         specifier: ^1.3.26
         version: 1.3.26(react@18.3.1)
     devDependencies:
-      '@wordpress/rich-text':
-        specifier: 7.46.0
-        version: 7.46.0(react@18.3.1)
-      '@wordpress/browserslist-config':
-        specifier: 6.31.0
-        version: 6.31.0
       '@playwright/test':
         specifier: 1.52.0
         version: 1.52.0
@@ -33,6 +32,9 @@ importers:
       '@wordpress/blocks':
         specifier: ^15.9.0
         version: 15.19.0(react@18.3.1)
+      '@wordpress/browserslist-config':
+        specifier: 6.31.0
+        version: 6.31.0
       '@wordpress/components':
         specifier: ^30.9.0
         version: 30.9.0(@emotion/is-prop-valid@1.3.1)(@types/react@19.1.13)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -69,12 +71,15 @@ importers:
       '@wordpress/notices':
         specifier: ^5.36.0
         version: 5.46.0(@emotion/is-prop-valid@1.3.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@wordpress/rich-text':
+        specifier: 7.46.0
+        version: 7.46.0(react@18.3.1)
       '@wordpress/scripts':
         specifier: 30.24.0
         version: 30.24.0(@playwright/test@1.52.0)(@types/eslint@9.6.1)(@types/node@22.14.1)(@types/webpack@4.41.40)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(stylelint-scss@6.11.1(stylelint@16.18.0(typescript@5.8.3)))(type-fest@3.13.1)(typescript@5.8.3)
       aos:
         specifier: ^3.0.0-beta.6
-        version: 3.0.0-beta.6
+        version: 3.0.0-beta.6(patch_hash=017384398c3cd2c6b9feade4fa39d7d2c7d7b38ff14c07325044bb679f75fbce)
       classnames:
         specifier: ^2.5.1
         version: 2.5.1
@@ -10232,7 +10237,7 @@ snapshots:
       normalize-path: 3.0.0
       picomatch: 2.3.1
 
-  aos@3.0.0-beta.6:
+  aos@3.0.0-beta.6(patch_hash=017384398c3cd2c6b9feade4fa39d7d2c7d7b38ff14c07325044bb679f75fbce):
     dependencies:
       classlist-polyfill: 1.2.0
       lodash.debounce: 4.0.8
