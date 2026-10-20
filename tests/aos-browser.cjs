@@ -18,7 +18,7 @@ const anchors = ['top-bottom', 'center-bottom', 'bottom-bottom', 'top-center', '
 function fixture(override = false, anchor = '', count = 0, customStart = false) {
 	const placement = anchors.includes(anchor) ? ` data-aos-anchor-placement="${anchor}"` : ''
 	const items = Array.from({ length: Math.min(1000, Math.max(0, count)) }, (_, i) => `<div class="bench" data-aos="fade-up" style="height:12px">${i}</div>`).join('')
-	return `<!doctype html><html class="no-js"><head><meta charset="utf-8"><link rel="stylesheet" href="/VARIANT/build/aos.css"><style>#spacer{height:1600px}[data-aos]{transition-duration:0s}</style><script>document.documentElement.classList.remove('no-js');window.anfbAosSettings={offset:0,duration:0,delay:0${customStart ? ",startEvent:'anfb:test'" : ''}};window.__listeners=new Map();const __add=window.addEventListener,__remove=window.removeEventListener;window.addEventListener=function(type,listener,options){if(!window.__listeners.has(type))window.__listeners.set(type,new Set());window.__listeners.get(type).add(listener);return __add.call(this,type,listener,options)};window.removeEventListener=function(type,listener,options){window.__listeners.get(type)?.delete(listener);return __remove.call(this,type,listener,options)};window.__activeObservers=new Set();const __MutationObserver=window.MutationObserver;window.MutationObserver=class extends __MutationObserver{constructor(callback){super(callback);this.__aosObserver=new Error().stack.includes('/build/aos.js')}observe(...args){if(this.__aosObserver)window.__activeObservers.add(this);return super.observe(...args)}disconnect(){if(this.__aosObserver)window.__activeObservers.delete(this);return super.disconnect()}};let __aos;Object.defineProperty(window,'AOS',{configurable:true,get(){return __aos},set(engine){__aos=engine;window.__aosReadyMs=performance.now()}});${override ? 'window.AOS={init:function(){window.__externalInit=(window.__externalInit||0)+1}};' : ''}</script></head><body><div id="spacer"></div><div id="subject" data-aos="fade-up" data-aos-id="contract" data-aos-offset="0"${placement} style="height:80px"></div>${items}<div style="height:1800px"></div><script defer src="/VARIANT/build/aos.js"></script><script defer src="/VARIANT/build/init.js"></script></body></html>`
+	return `<!doctype html><html class="no-js"><head><meta charset="utf-8"><link rel="stylesheet" href="/VARIANT/build/aos.css"><style>#spacer{height:1600px}[data-aos]{transition-duration:0s}</style><script>document.documentElement.classList.remove('no-js');window.anfbAosSettings={offset:0,duration:0,delay:0${customStart ? ",startEvent:'anfb:test'" : ''}};window.__listeners=new Map();const __add=window.addEventListener,__remove=window.removeEventListener;window.addEventListener=function(type,listener,options){if(!window.__listeners.has(type))window.__listeners.set(type,new Set());window.__listeners.get(type).add(listener);return __add.call(this,type,listener,options)};window.removeEventListener=function(type,listener,options){window.__listeners.get(type)?.delete(listener);return __remove.call(this,type,listener,options)};window.__activeObservers=new Set();window.__aosObserverDeliveries=0;const __MutationObserver=window.MutationObserver;window.MutationObserver=class extends __MutationObserver{constructor(callback){const aos=new Error().stack.includes('/build/aos.js');super(records=>{if(aos)window.__aosObserverDeliveries++;callback(records)});this.__aosObserver=aos}observe(...args){if(this.__aosObserver)window.__activeObservers.add(this);return super.observe(...args)}disconnect(){if(this.__aosObserver)window.__activeObservers.delete(this);return super.disconnect()}};let __aos;Object.defineProperty(window,'AOS',{configurable:true,get(){return __aos},set(engine){__aos=engine;window.__aosReadyMs=performance.now()}});${override ? 'window.AOS={init:function(){window.__externalInit=(window.__externalInit||0)+1}};' : ''}</script></head><body><div id="spacer"></div><div id="subject" data-aos="fade-up" data-aos-id="contract" data-aos-offset="0"${placement} style="height:80px"></div>${items}<div style="height:1800px"></div><script defer src="/VARIANT/build/aos.js"></script><script defer src="/VARIANT/build/init.js"></script></body></html>`
 }
 
 function createServer() {
@@ -49,6 +49,9 @@ async function pageFor(browser, base, variant, anchor = '') {
 async function contracts(browser, base, variant) {
 	const { page, errors } = await pageFor(browser, base, variant)
 	let listenerCounts
+	let mutationRefreshes
+	let pageOffsetReads
+	let timings
 	try {
 		const api = await page.evaluate(() => ['init', 'refresh', 'refreshHard'].every(name => typeof window.AOS[name] === 'function'))
 		assert(api, `${variant}: public AOS API missing`)
@@ -84,6 +87,30 @@ async function contracts(browser, base, variant) {
 		}
 		const css = await page.locator('#subject').evaluate(element => getComputedStyle(element).opacity)
 		assert.equal(css, '0', `${variant}: initial AOS CSS state`)
+		timings = await page.evaluate(() => {
+			document.body.dataset.aosDuration = '750'
+			document.body.dataset.aosDelay = '500'
+			const subject = document.querySelector('#subject')
+			subject.dataset.aosDuration = '250'
+			subject.dataset.aosDelay = '100'
+			const local = getComputedStyle(subject).transitionDuration
+			const delayBefore = getComputedStyle(subject).transitionDelay
+			subject.classList.add('aos-animate')
+			const delayAfter = getComputedStyle(subject).transitionDelay
+			const parent = document.createElement('div')
+			parent.dataset.aosDuration = '800'
+			const child = document.createElement('div')
+			child.dataset.aos = 'fade-up'
+			parent.append(child)
+			document.body.append(parent)
+			const inherited = getComputedStyle(child).transitionDuration
+			const zero = document.createElement('div')
+			zero.dataset.aos = 'fade-up'
+			zero.dataset.aosDuration = '0'
+			document.body.append(zero)
+			return { local, delayBefore, delayAfter, inherited, zero: getComputedStyle(zero).transitionDuration }
+		})
+		assert.deepEqual(timings, { local: '0.25s', delayBefore: '0s', delayAfter: '0.1s', inherited: '0.75s', zero: '0.75s' }, `${variant}: AOS timing CSS cascade`)
 
 		const events = await page.evaluate(() => {
 			window.__events = []
@@ -121,6 +148,61 @@ async function contracts(browser, base, variant) {
 			window.scrollTo(0, document.body.scrollHeight)
 		})
 		await page.waitForFunction(() => document.querySelector('#dynamic').classList.contains('aos-animate'))
+		mutationRefreshes = await page.evaluate(async () => {
+			const original = document.querySelectorAll.bind(document)
+			let refreshes = 0
+			document.querySelectorAll = selector => {
+				if (selector === '[data-aos]') refreshes++
+				return original(selector)
+			}
+			const before = window.__aosObserverDeliveries
+			const batch = []
+			for (let i = 0; i < 25; i++) {
+				const item = document.createElement('div')
+				item.dataset.aos = 'fade-up'
+			batch.push(item)
+			}
+			const wrapper = document.createElement('div')
+			const nested = document.createElement('div')
+			nested.dataset.aos = 'fade-up'
+			wrapper.append(nested)
+			batch.push(wrapper)
+			batch.forEach(item => document.body.append(item))
+			await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+			const added = { deliveries: window.__aosObserverDeliveries - before, refreshes }
+			refreshes = 0
+			const removeBefore = window.__aosObserverDeliveries
+			batch.forEach(item => item.remove())
+			await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+			const removed = { deliveries: window.__aosObserverDeliveries - removeBefore, refreshes }
+			const placeholder = document.createElement('div')
+			document.body.append(placeholder)
+			await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+			refreshes = 0
+			const replaceBefore = window.__aosObserverDeliveries
+			const replacement = document.createElement('div')
+			replacement.dataset.aos = 'fade-up'
+			placeholder.replaceWith(replacement)
+			await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+			return { added, removed, replaced: { deliveries: window.__aosObserverDeliveries - replaceBefore, refreshes } }
+		})
+		if (variant === 'candidate') {
+			assert.equal(mutationRefreshes.added.deliveries, 1, `${variant}: expected one observer delivery for synchronous additions`)
+			assert.equal(mutationRefreshes.added.refreshes, 1, `${variant}: additions should trigger one refreshHard per delivery`)
+			assert.equal(mutationRefreshes.removed.deliveries, 1, `${variant}: expected one observer delivery for synchronous removal`)
+			assert.equal(mutationRefreshes.removed.refreshes, 1, `${variant}: removals should trigger one refreshHard per delivery`)
+			assert.equal(mutationRefreshes.replaced.deliveries, 1, `${variant}: expected one observer delivery for replacement`)
+			assert.equal(mutationRefreshes.replaced.refreshes, 1, `${variant}: replacement should trigger one refreshHard per delivery`)
+		}
+		pageOffsetReads = await page.evaluate(() => {
+			const pageOffset = window.pageYOffset
+			let reads = 0
+			Object.defineProperty(window, 'pageYOffset', { configurable: true, get() { reads++; return pageOffset } })
+			AOS.refresh()
+			delete window.pageYOffset
+			return reads
+		})
+		if (variant === 'candidate') assert.equal(pageOffsetReads, 1, `${variant}: scroll pass should read pageYOffset once`)
 		assert.deepEqual(errors, [], `${variant}: browser errors`)
 	} finally { await page.close() }
 
@@ -168,7 +250,7 @@ async function contracts(browser, base, variant) {
 		await customStart.evaluate(() => document.dispatchEvent(new Event('anfb:later')))
 		await customStart.waitForFunction(() => document.querySelector('#subject').classList.contains('aos-init'))
 	} finally { await customStart.close() }
-	return { variant, anchors: anchors.length, api: true, once: true, mirror: true, dynamicRefresh: true, externalOverride: true, customStartEventRebind: variant === 'candidate', listenerCounts }
+	return { variant, anchors: anchors.length, api: true, once: true, mirror: true, dynamicRefresh: true, mutationRefreshes, pageOffsetReads, timings, externalOverride: true, customStartEventRebind: variant === 'candidate', listenerCounts }
 }
 
 async function benchmark(browser, base) {
@@ -199,7 +281,21 @@ async function benchmark(browser, base) {
 							const refreshHard100Start = performance.now(); for (let i = 0; i < 100; i++) AOS.refreshHard(); const refreshHard100Ms = performance.now() - refreshHard100Start
 							const scrollListenersAfter100 = window.__listeners.get('scroll')?.size || 0
 							const scrollStart = performance.now(); window.scrollTo(0, document.body.scrollHeight / 2); window.dispatchEvent(new Event('scroll')); await new Promise(resolve => setTimeout(resolve, 130)); const scrollResponseMs = performance.now() - scrollStart
-							return { aosReadyMs: window.__aosReadyMs, assetTransferMs: resources.reduce((sum, resource) => sum + resource.duration, 0), refreshMs, refresh100Ms, refreshHard100Ms, scrollResponseMs, scrollListenersAfter100 }
+							const originalQuerySelectorAll = document.querySelectorAll.bind(document)
+							let mutationRefreshCalls = 0
+							document.querySelectorAll = selector => {
+								if (selector === '[data-aos]') mutationRefreshCalls++
+								return originalQuerySelectorAll(selector)
+							}
+							const mutationStart = performance.now()
+							for (let i = 0; i < 100; i++) {
+								const element = document.createElement('div')
+								element.dataset.aos = 'fade-up'
+								document.body.append(element)
+							}
+							await new Promise(resolve => requestAnimationFrame(resolve))
+							const mutationBurstMs = performance.now() - mutationStart
+							return { aosReadyMs: window.__aosReadyMs, assetTransferMs: resources.reduce((sum, resource) => sum + resource.duration, 0), refreshMs, refresh100Ms, refreshHard100Ms, scrollResponseMs, scrollListenersAfter100, mutationRefreshCalls, mutationBurstMs }
 						})
 						if (run > 0) samples.push({ variant, count, viewport: viewport.name, cpu, sample: run, ...metrics })
 						await context.close()

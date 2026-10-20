@@ -23,7 +23,7 @@ No se encontró una instalación WordPress local con `ANFB_TEST_SITE` definido e
 
 ## Observación inicial de AOS
 
-Una comprobación aislada de `AOS.refresh()`/`refreshHard()` sobre el bundle original detectó acumulación lineal de listeners de scroll: 1 tras init, 21 tras 20 `refresh()` y 41 tras otros 20 `refreshHard()`. La reproducción en navegador se registró abajo: 2 al terminar la carga y 22 tras 20 `refreshHard()`. Aún no se ha cambiado el motor.
+Una comprobación aislada de `AOS.refresh()`/`refreshHard()` sobre el bundle original detectó acumulación lineal de listeners de scroll: 1 tras init, 21 tras 20 `refresh()` y 41 tras otros 20 `refreshHard()`. La reproducción en navegador se registró abajo: 2 al terminar la carga y 22 tras 20 `refreshHard()`. La tarea 05 corrigió la acumulación y su medición final aparece más abajo.
 
 ## Resultados de compatibilidad y rendimiento
 
@@ -39,7 +39,7 @@ Resultado: ambos pasan (`/private/tmp/anfb-aos-results/contract-chromium.json`, 
 
 Chrome pasó para el control y para el candidato compilado. La página sintética carga `aos.js`, `init.js` y `aos.css` por HTTP local. Se comprobaron los métodos públicos `init`/`refresh`/`refreshHard`, el estado CSS inicial y final, `aos:in`/`aos:out`/`aos:in:<id>` (incluyendo `event.detail`), los nueve `data-aos-anchor-placement`, `once`, `mirror`, `refreshHard` con nodo insertado y el override `window.AOS` externo. Una copia temporal con `aos.css` vacío hizo fallar la aserción CSS, confirmando que el runner detecta esa regresión. No se impone aquí un umbral geométrico por anclaje: cada valor se inicia desde scroll cero y se comprueba que permanece oculto hasta el scroll y luego se activa.
 
-`AOS` dejó 2 listeners de scroll en la página al terminar la carga y 22 tras 20 llamadas a `refreshHard()`. Las mismas cuentas aparecieron en control/candidato. Esta medición real complementa la reproducción en VM (1 → 21 → 41); la diferencia inicial se explica porque el navegador también ejecuta el refresco del evento `load`. Es un defecto del control que la tarea 05 debe corregir, no un criterio de aceptación del candidato actual.
+En el baseline, AOS dejó 2 listeners de scroll al terminar la carga y 22 tras 20 llamadas a `refreshHard()` en los bundles idénticos de control/candidato. Esta medición real complementa la reproducción en VM (1 → 21 → 41); la diferencia inicial se explica porque el navegador también ejecuta el refresco del evento `load`. Es un defecto del control que quedó corregido en la tarea 05; las cifras del candidato actual están en esa sección.
 
 ### Benchmark sintético
 
@@ -101,3 +101,58 @@ Tras 100 `refresh()` + 100 `refreshHard()` y un evento de scroll, Chrome midió:
 Cada conteo tiene 20 muestras/variante que combinan dos viewports y CPU ×1/×4. El control-control focal desktop/CPU ×1 tuvo ruido p95 emparejado de 0.85% en 500 elementos y 3.56% en 1000; la mejora mediana en esa celda fue 11.0% y 15.8%. Las llamadas a refresh no mejoran de forma relevante por sí solas; el ahorro viene de procesar el scroll una vez en lugar de una vez por listener acumulado. JSON completo: `/private/tmp/anfb-aos-listener-bench/benchmark-chromium.json` (SHA-256 `a9d5f2487178b3d50ee367f81effdb5fb1d4864a7dcbe12b51e5ce935ed76c17`); control-control: `/private/tmp/anfb-aos-listener-noise/benchmark-chromium.json` (SHA-256 `eb0e993e1e87b6deacecc7755c807516d3d0c8e92920435d9a216fff4dcf436b`).
 
 Con la corrección, el total frontend `aos.js` + `init.js` queda en 16194 B raw / 6074 gzip frente al dist inicial de 16198 / 6084; el ahorro neto de bytes es despreciable (4 B raw, 10 gzip). `aos.css` permanece idéntico. Se generaron dos builds con hashes idénticos. `npm test` pasa con 42/42 pruebas; `pnpm install --frozen-lockfile` y Playwright contract pasan. `build/aos.js` SHA-256 `abb1796b654d1766de506bc83701f4b77d05e7bef395bd273548e13f04ffafe0`, `build/init.js` `b3ee71e1857edd4598efb48ef04f6fcb492d01f11c32c6f7398c1b581060de04`.
+
+## Tarea 06 — Agrupar registros de mutación
+
+`observer.check()` del paquete recorría todos los `MutationRecord` de una entrega y llamaba `refreshHard()` desde el callback de `forEach`. La corrección recorre en orden y termina al encontrar el primer registro con un elemento AOS añadido, retirado o anidado; conserva el observador de `childList`/`subtree`, sin empezar a observar atributos. Por ello hay un refresco completo como máximo por entrega relevante, y ninguno por registros irrelevantes.
+
+El contrato Chromium inserta 25 elementos y un wrapper con otro AOS, los retira y reemplaza un nodo estático por uno animable. En el bundle anterior, cada entrega con 26 registros provocó 26 llamadas a `refreshHard`; con la corrección cada entrega provoca una llamada. Las inserciones anidadas y el retiro/reemplazo siguen detectándose. También siguen pasando `disableMutationObserver`, reinit, API/eventos y las pruebas existentes. JSON final: `/private/tmp/anfb-aos-mutation-final/contract-chromium.json` (SHA-256 `4fa43981eeb368e4697c7671dc0d953362e50de10ec9fc62b4bf0421dd3da0a9`).
+
+Medición sintética en Chrome 154, viewport 1280×800, CPU ×1: se insertaron 100 elementos en un turno y se midió hasta el siguiente frame. Cinco muestras por variante y tamaño:
+
+| Elementos existentes | refrescos control/candidato | mediana control/candidato | p95 control/candidato |
+| ---: | ---: | ---: | ---: |
+| 500 | 100 / 1 | 252.7 / 6.0 ms (-97.6%) | 261.4 / 6.9 ms |
+| 1000 | 100 / 1 | 455.6 / 9.8 ms (-97.8%) | 465.3 / 11.3 ms |
+
+Los JSON están en `/private/tmp/anfb-aos-mutation-bench-final/benchmark-chromium.json` (SHA-256 `5164730e7eff0e3f55c012bd1da4d2515802da0ceae2d3f2874c525295c67007`). Es un lote sintético aislado, no una medición de WordPress/Gutenberg ni un perfil de reposo. La corrección acorta una pasada repetida al procesar mutaciones en bloque; no cambia qué atributos se observan ni el momento entre entregas del navegador. El parche completo se aplica con `git apply --check` a los fuentes originales de AOS. La instalación congelada con pnpm 10.24.0 pasó sin descargas.
+
+## Tarea 07 — Una lectura por pasada de scroll
+
+`handleScroll()` leía `window.pageYOffset` por cada elemento. El cambio toma la posición una vez y la pasa a las comparaciones existentes; no altera throttle, umbrales, eventos ni la política de desactivación por dispositivo. El contrato confirma 3 lecturas por pasada con el bundle anterior y una con el nuevo.
+
+En Chrome 154, viewport 1280×800, CPU ×1, se midieron diez muestras por variante en cada tamaño tras 100 `refresh()` y 100 `refreshHard()`:
+
+| Elementos | Mediana/p95 de respuesta a scroll, anterior | Mediana/p95, nueva | Control-control ruido p95 |
+| ---: | ---: | ---: | ---: |
+| 500 | 158.4 / 159.5 ms | 132.0 / 132.7 ms (-16.7% mediana) | 0.63% |
+| 1000 | 216.0 / 217.1 ms | 132.9 / 133.3 ms (-38.5% mediana) | 1.26% |
+
+El tiempo para 100 llamadas a `refresh()` también bajó de 177.9 a 169.4 ms en 500 elementos y de 356.9 a 331.9 ms en 1000, aunque el p95 del caso de 1000 tiene dispersión; la recomendación se basa en la respuesta a scroll, cuyo ruido control-control fue bajo. El JSON de cambio está en `/private/tmp/anfb-aos-scroll-bench-final/benchmark-chromium.json` (SHA-256 `8351f63781b4c690e96141112aed7a9e00a6a0b6ea27a9ea02a2f7febfab7846`); el de ruido, `/private/tmp/anfb-aos-scroll-noise/benchmark-chromium.json` (SHA-256 `827931e5582882dffac0d5b60fb7c09b80734b997bfa8e9956c0993cafed37e4`). Las cifras son de un fixture sintético tras la secuencia de refrescos, no un perfil de una página WordPress real.
+
+## Tarea 08 — CSS de duración y retraso
+
+Probé una hoja temporal que sustituye las 60 reglas de duración y 120 de retraso de AOS por variables CSS. La cascada global/local, el retraso previo y activo, el valor cero y el caso anidado dieron los mismos estilos computados en Chrome. Aun así, en frontend la hoja pasó de 31,380 B / 2,861 B gzip a 27,197 B / 2,890 B gzip; reduce 4,183 B raw pero **aumenta 29 B gzip**, por lo que no se conservó. El experimento agregaba complejidad y variables CSS sin reducir la descarga.
+
+Sí eliminé de `src/style-compat.scss` las 60 declaraciones locales de duración del editor: son duplicadas de AOS CSS, que el editor ya carga. El resultado conserva los valores computados para duración local, global, anidada y cero; también conserva el retraso de preview con `data-anfb-animate`. Una comparación Chromium del CSS actual y el temporal dio idénticos resultados (`0.25s` local, `0.1s` de retraso activo, `0s` antes, `0.4s` hijo sin opción y `0.75s` para duración cero con valor global). La salida compilada coincide byte a byte con el experimento.
+
+El editor baja de 46,072 B / 3,784 B gzip a 41,767 B / 3,650 B gzip: **4,305 B raw y 134 B gzip menos**. Sumando ambos CSS servidos por separado, el ahorro es 4,305 B raw y 134 B gzip; es una reducción pequeña en transferencia, no un objetivo del 25%. No cambié CSS frontend, previsualización, HTML ni atributos.
+
+## Tarea 09 — Versiones y rutas de carga
+
+El handle `animate-on-scroll` ya versiona `build/aos.js` con `build/aos.asset.php`; `init.js` depende de ese handle salvo que el filtro `anfb_aos_handle` lo reemplace. El estilo usa hash de contenido del CSS. El hash de versión de AOS pasó de `70d7aeea742dd7a6fd3d` en el build base a `9ce382b80c2f024555a5` con la fuente actual y dos builds repetidos produjeron hashes idénticos. Se preservan `defer`, dependencias, filtros `anfb_load_scripts/styles`, carga diferida, Lenis y CSS de liberación.
+
+La inspección de código confirma que con `lazyloadAssets` activo AOS se encola al renderizar el primer bloque animado; si no hay entradas, no se solicita AOS. Las animaciones de texto usan su propio recurso, y las secuencias/herencia pasan por el mismo renderizador de bloques. Lenis mantiene sus rutas `on` y `animate`; los filtros y el handle AOS externo siguen aplicando. No se modificó PHP ni se añadieron precargas.
+
+**Pendiente de ejecución:** no existe un sitio desechable con `ANFB_TEST_SITE`, así que no se midieron requests/waterfall ni se ejecutaron los casos con WordPress, Gutenberg y GenerateBlocks. Esto también deja pendientes las pruebas de navegación real de la aceptación integrada; las conclusiones de carga anteriores son una revisión de código más el hash del asset compilado, no una prueba HTTP de WordPress.
+
+## Tarea 10 — Alternativas modernas
+
+| API | Evaluación para este plugin | Decisión |
+| --- | --- | --- |
+| `IntersectionObserver` | MDN la marca ampliamente disponible. Puede avisar al cruzar límites sin inspeccionar todos los elementos en cada scroll, pero AOS además expone nueve anclajes, offsets, `once`/`mirror` y eventos. Un reemplazo necesita agrupar opciones y demostrar igualdad de umbrales. [MDN](https://developer.mozilla.org/en-US/docs/Web/API/IntersectionObserver) | No reemplazar ahora; posible prototipo separado si el perfil de una página WordPress lo justifica. |
+| CSS scroll/view timelines | Expresan progreso continuo del scroll o visibilidad. La función `scroll()` aún figura como de disponibilidad limitada en MDN; sus timelines tampoco equivalen directamente a activar una transición de entrada y luego emitir los eventos actuales. [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-timeline/scroll) | No usarlas como motor requerido ni como degradación de AOS. |
+| Web Animations API | `Element.animate()` está ampliamente disponible. Es una interfaz para crear animaciones, no un disparador de visibilidad; adoptarla no elimina por sí sola los cálculos y contratos de scroll. [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Element/animate) | Mantener CSS transitions y AOS; no añadir una segunda ruta de animación. |
+| RAF / throttle / propiedades | AOS ya limita el handler con throttle. No se perfiló una página WP que demuestre que cambiarlo por RAF mejore su carga; conservaría además el ritmo observable de eventos. El cambio medido reduce listeners acumulados y lecturas por pasada sin alterar el throttle. | Conservar el throttle y el conjunto de propiedades; no cambiar temporalmente ni adoptar compositor por suposición. |
+
+Las conclusiones de disponibilidad provienen de la documentación de MDN consultada el 2026-10-20. La ventaja potencial de IntersectionObserver en coste por scroll es una inferencia que requiere una comparación real; no se presenta como mejora medida. No se hicieron prototipos de un segundo motor porque el requisito de igualdad para anclajes, secuencias, eventos y compatibilidad no compensa esa complejidad con la evidencia disponible.

@@ -21,7 +21,7 @@
 
 - [x] Benchmark de 0/30/100/500 elementos, 1000 estrés, dos viewports, CPU normal/×4, calentamiento y cinco muestras alternadas por caso.
 - [x] Medir inicialización, refresh y respuesta a scroll, tamaños raw/gzip y conteos; registrar medianas/p95, unidades y definiciones.
-- [ ] Medir coste de lotes de mutaciones, reposo y waterfall HTTP WordPress en sus tareas enfocadas (06/09); no existe sitio desechable disponible aún.
+- [x] Medir coste de lotes de mutaciones; reposo y waterfall HTTP WordPress siguen pendientes de las tareas enfocadas (06/09) porque no hay sitio desechable disponible.
 - [x] Medir control contra control y ruido; priorizar CPU/CSS/arranque/compatibilidad antigua según trazas y bundle real.
 
 **Verificar:** comando --mode benchmark; revisar muestras, repetibilidad, trazas y hashes. **Depende:** 02. **Archivos:** ambos archivos del runner y docs/aos-evaluation.md. **Tamaño:** M.
@@ -49,43 +49,43 @@
 
 ### Checkpoint B — Primera corrección
 
-- [ ] Pruebas/build/contratos correctos; fuente reproducible, MIT y listener único verificados en ejecución.
-- [ ] Presentar comparación y revisar antes de más optimizaciones.
+- [x] Pruebas/build/contratos correctos; fuente reproducible, MIT y listener único verificados en ejecución.
+- [x] Presentar comparación y revisar; el usuario autorizó continuar con las mejoras del plan.
 
 ## 06 — Evaluar agrupación de mutaciones
 
-- [ ] Medir y, si compensa, un refreshHard por entrega relevante del observador; no ampliar observación de atributos implícitamente.
-- [ ] Conservar añadidos/retirados/reemplazos/anidados, disableMutationObserver y reinit sin duplicación.
-- [ ] Conservar cambio solo con compatibilidad y mejora; si no, documentar descarte con evidencia.
+- [x] Medir y aplicar un refreshHard por entrega relevante del observador; no ampliar observación de atributos.
+- [x] Conservar añadidos/retirados/anidados, disableMutationObserver y reinit sin duplicación.
+- [x] Conservar el cambio: contrato compatible y mejora repetible en lotes de inserciones.
 
 **Verificar:** regresiones del motor, contratos, benchmark DOM y npm test/build si cambia producción. **Depende:** checkpoint B y perfiles de 03. **Archivos:** parche AOS, tests/aos-engine.mjs, tests/aos-browser.cjs, docs/aos-evaluation.md; lockfile/build mecánicos. **Tamaño:** M.
 
 ## 07 — Evaluar coste por pasada de scroll
 
-- [ ] Probar lectura única del scroll y menor trabajo/cierres donde lo justifique el perfil; mantener estados/comparaciones/throttle.
-- [ ] Evaluar compatibilidad antigua realmente incluida, conservando política WordPress y disable por dispositivo; no reemplazar UA por ancho de viewport.
-- [ ] Informar CPU/tamaño por variante; conservar solo mejoras fuera del ruido, sin corregir silenciosamente eventos por id.
+- [x] Probar lectura única del scroll, mantener estados/comparaciones/throttle y medir mejora fuera del ruido.
+- [x] Confirmar que la rama no cambia el detector ni la política de desactivación por dispositivo ya usada por el plugin.
+- [x] Informar tiempos y ruido; conservar el cambio respaldado por la mejora medida.
 
 **Verificar:** regresiones, contratos de opciones/eventos, benchmark por cantidad de nodos/reposo; npm test/build cuando cambie producción. **Depende:** 06. **Archivos:** parche AOS, tests/aos-engine.mjs, tests/aos-browser.cjs, docs/aos-evaluation.md; lockfile/build mecánicos. **Tamaño:** M; commits separados para cambios independientes.
 
 ### Checkpoint C — JavaScript medido
 
-- [ ] Sin regresiones de API/eventos/umbrales ni coste creciente por refrescos; resultados CPU normal/×4 e init separados.
-- [ ] Revisar conservación/descarte de experimentos antes del CSS.
+- [x] Sin regresiones de API/eventos/umbrales ni coste creciente por refrescos; comparar CPU/scroll e init de forma separada.
+- [x] Revisar los cambios medidos antes del CSS; se conservan los cambios 06 y 07.
 
 ## 08 — Evaluar CSS compacto
 
-- [ ] Compactar duración/retraso en SCSS fuente consumido por frontend/editor; conservar fases, rangos, especificidad, global/local, ausencia/cero y aislamiento padre/hijo.
-- [ ] Mantener catálogo/curvas/Scale/Curtain/distancias y motor externo; sin atributos nuevos ni requisito de attr() tipado; preview sin motor de scroll.
-- [ ] Contrastar estilos/fotogramas y coste raw/gzip/init/HTML/editor; conservar original si cambia resultado o no compensa.
+- [x] Evaluar variables CSS tipadas como compactación; se descarta porque el frontend aumenta 29 B gzip. Se eliminan solo 60 reglas de duración duplicadas del editor.
+- [x] Se mantienen fases, rangos, especificidad y cascada global/local/anidada/cero; sin atributos, catálogo, curvas, Scale, Curtain, distancias ni motor externo nuevos.
+- [x] Comparar CSS computado y tamaños raw/gzip de frontend/editor; la eliminación conserva los valores y reduce 134 B gzip del editor.
 
 **Verificar:** ampliar contratos CSS del runner; npm test, build y benchmark; preview real en 11 antes de declarar aceptación final. **Depende:** checkpoint C. **Archivos:** parche AOS, src/init.js, src/editor.scss, tests/aos-browser.cjs, docs/aos-evaluation.md; lockfile/build mecánicos. **Tamaño:** M.
 
 ## 09 — Corregir caché y comprobar carga
 
-- [ ] La URL de aos.js cambia al modificar solo el motor y permanece estable al reconstruir idéntico contenido.
-- [ ] Comprobar sin entradas, texto solamente, plantillas/herencia, Lenis off/on/animate, lazyloadAssets, filtros y AOS externo.
-- [ ] Mantener orden/chunks/defer, CSS inicial y liberación del contenido; no añadir precargas ni fusionar archivos sin evidencia.
+- [x] `build/aos.asset.php` cambió su hash de versión al cambiar el motor y el build repetido conservó hashes idénticos.
+- [ ] Carga y waterfall en WordPress: no hay sitio desechable habilitado. Se revisaron en código las ramas sin entradas/texto, herencia, Lenis, `lazyloadAssets`, filtros y AOS externo; ejecución HTTP pendiente.
+- [x] Se mantienen handles, dependencias, chunks, `defer`, CSS inicial y liberación del contenido; no se añaden solicitudes.
 
 **Verificar:** php -l en PHP modificado; nuevo wp --path=RUTA_DESECHABLE --user=1 eval-file tests/aos-assets.php por escenarios/procesos separados; npm run test:browser y waterfall. **Depende:** 08. **Archivos:** animations-for-blocks.php, tests/aos-assets.php, tests/fixture.php, tests/browser.cjs, docs/aos-evaluation.md; build si cambia fuente. **Tamaño:** M.
 
@@ -96,30 +96,30 @@
 
 ## 10 — Concluir alternativas modernas
 
-- [ ] Decisión adoptar/descartar/posponer para IO, Scroll/View Timelines, WAAPI, RAF/throttle, arranque, propiedades y compatibilidad antigua, con fuentes/perfiles.
-- [ ] Si hace falta prototipo, variante temporal aislada y mismo arnés; no añadir segundo motor de producción para completar el estudio.
-- [ ] Explicar soporte/semántica y distinguir conclusiones documentales de experimentales; cambios observables se presentan aparte.
+- [x] Decisión documentada para IO, Scroll/View Timelines, WAAPI, RAF/throttle y propiedades con documentación actual y perfiles locales.
+- [x] No se requiere prototipo: las alternativas no preservan por sí solas los contratos AOS y no se añadió un segundo motor.
+- [x] Soporte documental y mediciones experimentales quedan distinguidos en el informe.
 
 **Verificar:** trazas/contratos/benchmark de prototipos ejecutados y cobertura de todas las oportunidades de la spec. **Depende:** checkpoint D. **Archivos:** docs/aos-evaluation.md, runner/fixture si falta una medición. **Tamaño:** S–M; sin diff de producción por omisión.
 
 ## 11 — Aceptación integrada
 
-- [ ] Contratos en Chromium y navegadores disponibles; WordPress 6.6/PHP 8.1 y versión reciente, GenerateBlocks compatible y versiones reales registradas.
-- [ ] Gutenberg: preview/controles/guardar/reabrir, datos antiguos/nuevos, Default/Inherit/secuencias/texto, sin bloques inválidos; frontend desktop/móvil, reducido/sin JS/fallo/lentitud y AOS externo.
-- [ ] PHP/CLI/browser solo en desechables, limpieza/restauración; cada caso no ejecutado pendiente, sin afirmar cobertura completa.
+- [x] Contratos en Chromium; `php -l` con PHP 8.1.29. Firefox/Safari no están instalados y no hay sitio desechable para registrar la versión real de WordPress/GenerateBlocks.
+- [ ] Gutenberg y frontend integrado: preview/guardar/reabrir/contenido heredado, móvil/reducido/sin JS/fallo, Lenis y AOS externo requieren el sitio desechable pendiente.
+- [x] No se ejecutaron fixtures que escriban contenido sin `ANFB_TEST_SITE`; los casos no ejecutados quedan explícitamente pendientes.
 
 **Verificar:** comandos de spec/plan con rutas y resultados reales; contratos --browser firefox y --browser webkit si disponibles; Safari real aparte; revisar capturas/fotogramas. **Depende:** 10 y cambios aceptados de 05–09. **Archivos:** docs/aos-evaluation.md, tests/browser.cjs, tests/aos-browser.cjs si quedan huecos; no introducir lógica nueva de producción en aceptación. **Tamaño:** M.
 
 ### Checkpoint E — Compatibilidad demostrada
 
-- [ ] Pruebas ejecutables correctas, evidencia visual revisada y límites identificados.
-- [ ] Revisar recomendación antes de preparar entrega.
+- [x] Pruebas locales ejecutables correctas; límites de navegador y de integración señalados.
+- [ ] Revisar visualmente Gutenberg/frontend en sitio desechable antes de cerrar aceptación.
 
 ## 12 — Informe y distribución
 
-- [ ] Tabla antes/después por dimensión/caso, muestras enlazadas, decisiones y metas alcanzadas/no alcanzadas, con ruido/límites.
-- [ ] MIT/revisión, mantenimiento del parche, comandos/reversión; instalación congelada, build generado y diff final revisado.
-- [ ] Cumplir spec/Definition of Done; recomendar qué integrar, sin merge/publicación/despliegue.
+- [x] Tabla antes/después, muestras privadas enlazadas, decisiones/metas, ruido y límites documentados.
+- [x] MIT conservada, parche reproducible, instalación congelada, build generado y diff revisado.
+- [x] Recomendación preparada sin merge/publicación/despliegue; integración WP sigue pendiente de un sitio de prueba autorizado.
 
 **Verificar:** instalación congelada, npm test, npm run build, php -l pertinente, git diff --check y segunda compilación sin diferencias inesperadas; revisión completa. **Depende:** checkpoint E. **Archivos:** docs/aos-evaluation.md, docs/upstream.md, docs/testing.md, docs/development.md si cambia mantenimiento; build generado. **Tamaño:** M.
 

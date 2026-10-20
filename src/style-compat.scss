@@ -106,10 +106,6 @@
 
 	@for $i from 1 through 60 {
 
-		&[data-aos][data-aos-duration="#{$i * 50}"] {
-			transition-duration: #{$i * 50}ms;
-		}
-
 		&[data-aos][data-aos-delay="#{$i * 50}"] {
 			transition-delay: 0s;
 

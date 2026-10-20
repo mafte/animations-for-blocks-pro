@@ -201,6 +201,21 @@ index e64795791d5fdd16def4da81c3fef87f6c69f77c..99021e473f4963040feff6ea8978c68e
  
  function containsAOSNode(nodes) {
    let i, currentNode, result;
+@@ -26,2 +28,3 @@ function check(mutations) {
+-  mutations.forEach(mutation => {
++  for (let i = 0; i < mutations.length; i += 1) {
++    const mutation = mutations[i];
+     const addedNodes = Array.prototype.slice.call(mutation.addedNodes);
+@@ -31,3 +33,4 @@
+     if (containsAOSNode(allNodes)) {
+-      return callback();
++      callback();
++      return;
+     }
+@@ -34,2 +37,2 @@
+-  });
++  }
+ }
 @@ -50,14 +52,24 @@ function ready(selector, fn) {
    const doc = window.document;
    const MutationObserver = getMutationObserver();
@@ -229,3 +244,19 @@ index e64795791d5fdd16def4da81c3fef87f6c69f77c..99021e473f4963040feff6ea8978c68e
 +}
 +
 +export default { isSupported, ready, disconnect };
+diff --git a/src/js/helpers/handleScroll.js b/src/js/helpers/handleScroll.js
+index 148b813..8e96357 100644
+--- a/src/js/helpers/handleScroll.js
++++ b/src/js/helpers/handleScroll.js
+@@ -80,7 +80,9 @@ const applyClasses = (el, top) => {
+  * @param  {array} $elements         array of elements nodes
+  * @return {void}
+  */
+-const handleScroll = $elements =>
+-  $elements.forEach((el, i) => applyClasses(el, window.pageYOffset));
++const handleScroll = $elements => {
++  const top = window.pageYOffset;
++  $elements.forEach(el => applyClasses(el, top));
++};
+ 
+ export default handleScroll;
