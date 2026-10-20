@@ -1,6 +1,6 @@
 # Tareas: entradas con IntersectionObserver
 
-[Plan](plan.md), 2026-10-20. Estado: tareas 01-04 completadas; tarea 05 con una cobertura pendiente; fallback IO de tarea 06 verificado. Rama `codex/aos-intersection-observer`, base optimizada `04b8e2a6e11eb377561170b626d2ad08dd7eb503`. Lista única de tareas y checkpoints; no hay tracker externo. Evidencia: [evaluación de IntersectionObserver](../docs/aos-intersection-evaluation.md).
+[Plan](plan.md), 2026-10-20. Estado: tareas 01-04 completadas; tarea 05 parcialmente cubierta; tareas 07-08 ejecutadas con coste de rendimiento desfavorable y matriz de motores incompleta. No se recomienda adoptar IO. Rama `codex/aos-intersection-observer`, base optimizada `04b8e2a6e11eb377561170b626d2ad08dd7eb503`. Lista única de tareas y checkpoints; no hay tracker externo. Evidencia: [evaluación de IntersectionObserver](../docs/aos-intersection-evaluation.md).
 
 Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones; si aparecen más de cinco archivos sustantivos o una decisión independiente, dividir antes de implementar. Build generado y hash mecánico de lockfile se entregan con cada cambio de motor y se revisan aparte. No marcar criterios como cumplidos por el solo hecho de escribir una prueba.
 
@@ -106,9 +106,9 @@ Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones
 **Descripción:** Añadir medición específica que separe CPU real, renderizado y latencia, comparando IO con el AOS optimizado sin la espera fija del benchmark anterior.
 
 **Criterios de aceptación:**
-- [ ] Modo `profile` reproducible en el runner para 0/30/100/500/1000 elementos, configuraciones homogéneas/heterogéneas, dos viewports y CPU ×1/×4; calentamiento, cinco muestras alternadas y control/control. No usar 100 refresh previos como único escenario principal.
-- [ ] Guardar scripting atribuible, scripting/layout/paint total, frames/p95, long tasks, activación/transición, init/refresh, recursos, nodos/memoria disponibles y bytes raw/gzip; demostrar que el coste IO nativo no queda excluido de la comparación.
-- [ ] Evaluar la meta propuesta de ≥20% menos scripting con 500 nodos y tendencia en 1000, sin regresiones reproducibles >10% y >1 ms según el plan. Informar ruido, valores absolutos y costes; si no compensa, proponer revisión sin etiquetarlo automáticamente como mejora.
+- [x] Modo `profile` reproducible en el runner para 0/30/100/500/1000 elementos, configuraciones homogéneas/heterogéneas, dos viewports y CPU ×1/×4; calentamiento, cinco muestras alternadas y control/control. No usar 100 refresh previos como único escenario principal.
+- [x] Guardar scripting atribuible, scripting/layout/paint total, frames/p95, long tasks, activación/transición, init/refresh, recursos, nodos/memoria disponibles y bytes raw/gzip; demostrar que el coste IO nativo no queda excluido de la comparación.
+- [x] Evaluar la meta propuesta de ≥20% menos scripting con 500 nodos y tendencia en 1000, sin regresiones reproducibles >10% y >1 ms según el plan. El scripting baja, pero el coste de tarea/layout/refresh sube; se registra el resultado desfavorable y no se presenta como mejora.
 
 **Verificación:** Ejecutar el nuevo modo profile contra control/candidato y control/control; revisar trazas de navegador, muestras y atribución de costes. Si el arnés no detecta trabajo artificial añadido, corregir su instrumentación antes de aceptar resultados.
 
@@ -119,9 +119,9 @@ Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones
 **Descripción:** Ejecutar el contrato en distintos motores y contrastar el extremo inferior de la ventana de tres años sin presentar emulación como una versión histórica real.
 
 **Criterios de aceptación:**
-- [ ] Chromium, Firefox y WebKit disponibles pasan geometría, salto, eventos y ciclo de vida; Safari real se registra por separado. Probar viewports móviles y documentar cuándo se usa solo emulación de tamaño.
-- [ ] Verificar versiones mínimas fijadas en 01 mediante entornos seguros disponibles; registrar versión de navegador/SO y resultados. Si falta un extremo, la cobertura de esa ventana queda pendiente y no se declara completa.
-- [ ] Mantener tolerancia y contrato entre motores; errores nativos y edge cases no se ocultan con exclusiones genéricas, esperas arbitrarias o rebaja de aserciones.
+- [ ] Chromium, Firefox y WebKit disponibles pasan geometría, salto, eventos y ciclo de vida; Safari real se registra por separado. Firefox y WebKit no se pudieron lanzar con la automatización instalada; Safari no se ejecutó.
+- [ ] Verificar versiones mínimas fijadas en 01 mediante entornos seguros disponibles; registrar versión de navegador/SO y resultados. Las versiones mínimas de 2023 quedan pendientes.
+- [x] Mantener tolerancia y contrato entre motores; los extremos no disponibles se dejan explícitamente pendientes, sin exclusiones ni rebajas.
 
 **Verificación:** Runner `--mode contract --browser chromium|firefox|webkit` y sesiones identificadas de Safari/históricos; capturas y logs por entorno. No afirmar Safari 2023 por ejecutar WebKit actual.
 
@@ -129,8 +129,8 @@ Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones
 
 ### Checkpoint D — Rendimiento y soporte
 
-- [ ] Rendimiento, coste total y cobertura contrastados con los criterios; carencias de entorno documentadas, sin aprobación ficticia de compatibilidad completa.
-- [ ] Revisar con el usuario la evidencia para continuar a aceptación WordPress o revisar el diseño.
+- [x] Rendimiento, coste total y cobertura contrastados con los criterios; carencias de entorno documentadas, sin aprobación ficticia de compatibilidad completa. La recomendación de adopción es negativa por regresión de coste total.
+- [x] El usuario autorizó continuar el plan; se conservan las carencias como pendientes y se procede con validaciones funcionales sin afirmar compatibilidad completa.
 
 ## 09 — Validar WordPress y Gutenberg
 
@@ -142,6 +142,8 @@ Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones
 - [ ] Frontend escritorio/móvil, movimiento reducido, JavaScript desactivado y fallo del detector pasan; fixtures solo con `ANFB_TEST_SITE` efectivo, y limpieza/restauración documentadas.
 
 **Verificación:** Comandos de `docs/testing.md`: `tests/content.php`, escenarios separados de `tests/aos-assets.php`, `tests/cli.py`, `tests/fixture.php` y `npm run test:browser`; inspección visual del canvas real de Gutenberg y waterfall. `php -l` si hay PHP afectado.
+
+**Estado actual:** No ejecutar aún las fixtures que escriben contenido. En las instalaciones Local visibles no hay ningún `wp-config.php` con `ANFB_TEST_SITE`; usar una copia desechable que tenga el indicador efectivo antes de continuar esta tarea. La prueba de navegador/contrato del bundle ya pasa en Chromium, pero no sustituye a Gutenberg real.
 
 **Dependencias:** Checkpoint D revisado. **Archivos previstos:** `tests/browser.cjs`, `tests/aos-assets.php`, `tests/fixture.php`, `docs/aos-intersection-evaluation.md`; PHP principal solo ante una corrección de carga demostrada, subdividiendo si supera cinco archivos. **Alcance:** M, 4–5 archivos.
 
