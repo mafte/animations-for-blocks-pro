@@ -125,5 +125,5 @@
 
 ### Checkpoint final — Entrega para revisión
 
-- [ ] Commits por incremento; parche/lock/fuentes/build coherentes e informe/resultados disponibles.
-- [ ] Trabajo ajeno y páginas originales conservados; recomendación lista para revisión humana.
+- [x] Commits creados; parche/lock/fuentes/build coherentes e informe/resultados disponibles.
+- [x] Trabajo ajeno y páginas originales conservados; recomendación lista para revisión humana con la integración WordPress pendiente identificada.
