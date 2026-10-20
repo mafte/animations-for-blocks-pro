@@ -9,7 +9,7 @@ const args = Object.fromEntries(process.argv.slice(2).reduce((pairs, value, inde
 	return pairs
 }, []))
 const mode = args.mode || 'contract'
-const variants = Object.fromEntries(['control', 'candidate'].map(name => [name, path.resolve(args[name] || process.cwd())]))
+const variants = Object.fromEntries(['control', 'candidate', 'prototype'].map(name => [name, path.resolve(args[name] || process.cwd())]))
 const output = path.resolve(args.output || '/private/tmp/anfb-aos-results')
 const browserType = ({ chromium, firefox, webkit })[args.browser || 'chromium']
 const browserPath = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
@@ -21,6 +21,18 @@ function fixture(override = false, anchor = '', count = 0, customStart = false) 
 	return `<!doctype html><html class="no-js"><head><meta charset="utf-8"><link rel="stylesheet" href="/VARIANT/build/aos.css"><style>#spacer{height:1600px}[data-aos]{transition-duration:0s}</style><script>document.documentElement.classList.remove('no-js');window.anfbAosSettings={offset:0,duration:0,delay:0${customStart ? ",startEvent:'anfb:test'" : ''}};window.__listeners=new Map();const __add=window.addEventListener,__remove=window.removeEventListener;window.addEventListener=function(type,listener,options){if(!window.__listeners.has(type))window.__listeners.set(type,new Set());window.__listeners.get(type).add(listener);return __add.call(this,type,listener,options)};window.removeEventListener=function(type,listener,options){window.__listeners.get(type)?.delete(listener);return __remove.call(this,type,listener,options)};window.__activeObservers=new Set();window.__aosObserverDeliveries=0;const __MutationObserver=window.MutationObserver;window.MutationObserver=class extends __MutationObserver{constructor(callback){const aos=new Error().stack.includes('/build/aos.js');super(records=>{if(aos)window.__aosObserverDeliveries++;callback(records)});this.__aosObserver=aos}observe(...args){if(this.__aosObserver)window.__activeObservers.add(this);return super.observe(...args)}disconnect(){if(this.__aosObserver)window.__activeObservers.delete(this);return super.disconnect()}};let __aos;Object.defineProperty(window,'AOS',{configurable:true,get(){return __aos},set(engine){__aos=engine;window.__aosReadyMs=performance.now()}});${override ? 'window.AOS={init:function(){window.__externalInit=(window.__externalInit||0)+1}};' : ''}</script></head><body><div id="spacer"></div><div id="subject" data-aos="fade-up" data-aos-id="contract" data-aos-offset="0"${placement} style="height:80px"></div>${items}<div style="height:1800px"></div><script defer src="/VARIANT/build/aos.js"></script><script defer src="/VARIANT/build/init.js"></script></body></html>`
 }
 
+function geometryFixture({ anchor = '', globalAnchor = 'top-bottom', top = 1800, height = 101, offset = 37, inlineOffset = null, anchorTop = null, initialScroll = 0, mirror = false, once = false, transformY = 0, horizontalOffset = 0, throttleDelay = 0, position = '', clipParent = false, nestedScroller = false, hidden = false }) {
+	const placement = anchor ? ` data-aos-anchor-placement="${anchor}"` : ''
+	const localOffset = inlineOffset === null ? '' : ` data-aos-offset="${inlineOffset}"`
+	const reference = anchorTop === null ? '' : `<div id="anchor-gap" style="height:${anchorTop - top}px"></div><div id="anchor-target" style="height:${height}px"></div>`
+	const anchorSelector = anchorTop === null ? '' : ' data-aos-anchor="#anchor-target"'
+	const style = `height:${height}px;margin-left:${horizontalOffset}px;transform:translateY(${transformY}px)${position ? `;position:${position};top:0` : ''}${hidden ? ';display:none' : ''}`
+	const subject = `<div id="subject" data-aos="fade-up" data-aos-id="geometry"${placement}${localOffset}${anchorSelector} style="${style}"></div>`
+	const target = clipParent ? `<div id="clip" style="height:${height}px;overflow:hidden;transform:translateY(-250px)">${subject}</div>` : subject
+	const structure = nestedScroller ? `<div id="scroller" style="height:200px;overflow:auto"><div style="height:${top}px"></div>${target}<div style="height:3000px"></div></div><div id="tail"></div>` : `<div id="spacer"></div>${reference}${target}<div id="tail"></div>`
+	return `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/VARIANT/build/aos.css"><style>body{margin:0}#spacer{height:${top}px}#tail{height:3000px}[data-aos]{transition-duration:0s}</style><script>window.anfbAosSettings={offset:${offset},duration:0,delay:0,throttleDelay:${throttleDelay},once:${once},mirror:${mirror},anchorPlacement:'${globalAnchor}',startEvent:'anfb:geometry:start'};</script></head><body>${structure}<script defer src="/VARIANT/build/aos.js"></script><script defer src="/VARIANT/build/init.js"></script></body></html>`
+}
+
 function createServer() {
 	return http.createServer((request, response) => {
 		const url = new URL(request.url, 'http://localhost')
@@ -28,7 +40,14 @@ function createServer() {
 			response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
 			return response.end(fixture(url.searchParams.get('override') === '1', url.searchParams.get('anchor'), Number(url.searchParams.get('count')), url.searchParams.get('startEvent') === '1').replaceAll('/VARIANT', `/${url.searchParams.get('variant') || 'control'}`))
 		}
-		const match = url.pathname.match(/^\/(control|candidate)\/build\/(aos\.js|init\.js|aos\.css)$/)
+		if (url.pathname === '/geometry') {
+			const inlineOffset = url.searchParams.has('inlineOffset') ? Number(url.searchParams.get('inlineOffset')) : null
+			const anchorTop = url.searchParams.has('anchorTop') ? Number(url.searchParams.get('anchorTop')) : null
+			const page = geometryFixture({ anchor: url.searchParams.get('anchor') || '', globalAnchor: url.searchParams.get('globalAnchor') || 'top-bottom', top: Number(url.searchParams.get('top') || 1800), height: Number(url.searchParams.get('height') || 101), offset: Number(url.searchParams.get('offset') || 0), inlineOffset, anchorTop, initialScroll: Number(url.searchParams.get('initialScroll') || 0), mirror: url.searchParams.get('mirror') === 'true', once: url.searchParams.get('once') === 'true', transformY: Number(url.searchParams.get('transformY') || 0), horizontalOffset: Number(url.searchParams.get('horizontalOffset') || 0), throttleDelay: Number(url.searchParams.get('throttleDelay') || 0), position: url.searchParams.get('position') || '', clipParent: url.searchParams.get('clipParent') === 'true', nestedScroller: url.searchParams.get('nestedScroller') === 'true', hidden: url.searchParams.get('hidden') === 'true' })
+			response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+			return response.end(page.replaceAll('/VARIANT', `/${url.searchParams.get('variant') || 'control'}`))
+		}
+		const match = url.pathname.match(/^\/(control|candidate|prototype)\/build\/(aos\.js|init\.js|aos\.css)$/)
 		if (!match) { response.writeHead(404); return response.end('Not found') }
 		const file = path.join(variants[match[1]], 'build', match[2])
 		if (!fs.existsSync(file)) { response.writeHead(404); return response.end('Missing asset: ' + file) }
@@ -46,12 +65,231 @@ async function pageFor(browser, base, variant, anchor = '') {
 	return { page, errors }
 }
 
+function getTrigger(anchor, top, height, viewport, offset) {
+	const [elementPoint, viewportPoint] = anchor.split('-')
+	const elementFactor = { top: 0, center: 0.5, bottom: 1 }[elementPoint]
+	const viewportFactor = { top: 0, center: 0.5, bottom: 1 }[viewportPoint]
+	return top + height * elementFactor - viewport * viewportFactor + offset
+}
+
+async function geometryContracts(browser, base, variant) {
+	const cases = anchors.map(anchor => ({ anchor, label: anchor, offsetIn: 0, offsetOut: 37 }))
+	cases.push(
+		{ anchor: '', globalAnchor: 'center-top', label: 'global-placement', offsetIn: 37, offsetOut: 37 },
+		{ anchor: 'center-center', inlineOffset: 0, label: 'inline-zero', offsetIn: 0, offsetOut: 0 },
+		{ anchor: 'center-center', inlineOffset: 17, label: 'inline-positive', offsetIn: 17, offsetOut: 17 },
+		{ anchor: 'center-center', inlineOffset: -13, label: 'inline-negative', offsetIn: -13, offsetOut: -13 },
+		{ anchor: 'center-center', anchorTop: 1950, label: 'external-anchor', offsetIn: 0, offsetOut: 37 },
+		{ anchor: 'top-bottom', mirror: true, label: 'mirror-entry-exit', offsetIn: 0, offsetOut: 37 },
+		{ anchor: 'top-bottom', mirror: true, once: true, label: 'once-over-mirror', offsetIn: 0, offsetOut: 37 },
+		{ anchor: 'bottom-top', height: 1700, label: 'taller-than-viewport', offsetIn: 0, offsetOut: 37 },
+		{ anchor: 'center-bottom', height: 0, label: 'zero-height', offsetIn: 0, offsetOut: 37 },
+		{ anchor: 'center-bottom', hidden: true, label: 'display-none', offsetIn: 0, offsetOut: 37 },
+		{ anchor: 'top-bottom', transformY: -350, label: 'transformed-target', offsetIn: 0, offsetOut: 37 },
+		{ anchor: 'top-bottom', clipParent: true, label: 'clipped-ancestor', offsetIn: 0, offsetOut: 37 },
+		{ anchor: 'top-bottom', horizontalOffset: 2400, label: 'offscreen-horizontal', offsetIn: 0, offsetOut: 37 },
+		{ anchor: 'top-bottom', position: 'sticky', label: 'sticky-target', offsetIn: 0, offsetOut: 37 },
+		{ anchor: 'top-bottom', position: 'fixed', label: 'fixed-target', offsetIn: 0, offsetOut: 37 },
+		{ anchor: 'top-bottom', nestedScroller: true, label: 'nested-scroller', offsetIn: 0, offsetOut: 37 },
+		{ anchor: 'center-bottom', viewport: 667, label: 'short-viewport', offsetIn: 0, offsetOut: 37 },
+		{ anchor: 'center-center', viewport: 900, label: 'tall-viewport', offsetIn: 0, offsetOut: 37 },
+		{ anchor: 'top-bottom', throttleDelay: 120, label: 'throttle-delay', offsetIn: 0, offsetOut: 37 },
+		{ anchor: 'top-top', initialScroll: 1830, label: 'restored-scroll', offsetIn: 0, offsetOut: 37 },
+	)
+	const observed = []
+	for (const testCase of cases) {
+		const query = new URLSearchParams({ variant, anchor: testCase.anchor, globalAnchor: testCase.globalAnchor || 'top-bottom', offset: '37', top: '1800', height: String(testCase.height ?? 101), mirror: String(testCase.mirror || false), once: String(testCase.once || false), transformY: String(testCase.transformY || 0), horizontalOffset: String(testCase.horizontalOffset || 0), throttleDelay: String(testCase.throttleDelay || 0), position: testCase.position || '', clipParent: String(testCase.clipParent || false), nestedScroller: String(testCase.nestedScroller || false), hidden: String(testCase.hidden || false) })
+		if (testCase.inlineOffset !== undefined) query.set('inlineOffset', String(testCase.inlineOffset))
+		if (testCase.anchorTop !== undefined) query.set('anchorTop', String(testCase.anchorTop))
+		if (testCase.initialScroll !== undefined) query.set('initialScroll', String(testCase.initialScroll))
+		const page = await browser.newPage({ viewport: { width: testCase.viewportWidth || 1280, height: testCase.viewport || 800 } })
+		try {
+			await page.goto(`${base}/geometry?${query}`)
+			await page.waitForFunction(() => window.AOS)
+			const prototypeBefore = variant === 'prototype' ? await page.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight })) : null
+			const beforeScreenshot = variant === 'prototype' && testCase.label === 'top-bottom' ? await page.screenshot() : null
+			const geometry = await page.evaluate(async () => {
+				const subject = document.querySelector('#subject')
+				window.scrollTo(0, Number(new URLSearchParams(location.search).get('initialScroll') || 0))
+				const aosTop = element => { let top = 0; while (element && !Number.isNaN(element.offsetTop)) { top += element.offsetTop - (element.tagName !== 'BODY' ? element.scrollTop : 0); element = element.offsetParent }; return top }
+				const reference = document.querySelector('#anchor-target') || subject
+				if (new URLSearchParams(location.search).get('variant') === 'prototype') return { top: aosTop(reference), height: reference.offsetHeight, viewport: innerHeight, scrollY, initialized: true }
+				document.dispatchEvent(new Event('anfb:geometry:start'))
+				await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+				return { top: aosTop(reference), height: reference.offsetHeight, viewport: window.innerHeight, scrollY: window.scrollY, initialized: subject.classList.contains('aos-init'), animated: subject.classList.contains('aos-animate') }
+			})
+			if (variant !== 'prototype') assert(geometry.initialized, `${variant}: ${testCase.label} did not initialize on its start event`)
+			const anchor = testCase.anchor || testCase.globalAnchor || 'top-bottom'
+			const anchorHeight = geometry.height
+			const threshold = getTrigger(anchor, geometry.top, anchorHeight, geometry.viewport, testCase.offsetIn) + Number(args.geometryBias || 0)
+			if (variant === 'prototype') {
+				await page.addScriptTag({ path: path.join(__dirname, 'fixtures/aos-intersection-prototype.js') })
+				await page.evaluate(({ enter, mirror, once, offsetOut, throttleDelay, top, height }) => {
+					const element = document.querySelector('#subject')
+					const exit = top + height - offsetOut
+					window.__ioRun = AOSIOPrototype.start([{ element, enter, exit, mirror, once }], throttleDelay)
+				}, { enter: threshold, mirror: testCase.mirror || false, once: testCase.once || false, offsetOut: testCase.offsetOut, throttleDelay: testCase.throttleDelay || 0, top: geometry.top, height: anchorHeight })
+				await page.waitForFunction(() => window.__ioRun?.stats.callbacks > 0)
+				if (beforeScreenshot) {
+					const afterScreenshot = await page.screenshot()
+					assert(beforeScreenshot.equals(afterScreenshot), `${variant}: hidden markers changed the rendered screenshot`)
+					fs.writeFileSync(path.join(output, 'geometry-before.png'), beforeScreenshot)
+					fs.writeFileSync(path.join(output, 'geometry-after.png'), afterScreenshot)
+				}
+				if (testCase.throttleDelay) await page.evaluate(() => window.__ioRun.holdThrottleWindow())
+				if (testCase.initialScroll) assert(await page.locator('#subject').evaluate(element => element.classList.contains('aos-animate')), `${variant}: ${testCase.label} did not initialize after restored scroll`)
+			}
+			if (testCase.nestedScroller) {
+				const nested = await page.evaluate(async () => {
+					const scroller = document.querySelector('#scroller')
+					scroller.scrollTop = 1800
+					await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+					const animatedWhileNestedScrolling = document.querySelector('#subject').classList.contains('aos-animate')
+					scroller.scrollTop = 0
+					await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+					return { scrollTop: 1800, animatedWhileNestedScrolling }
+				})
+				assert.equal(nested.animatedWhileNestedScrolling, false, `${variant}: nested scroll unexpectedly triggered the animation`)
+			}
+			let directComparison = null
+			if (variant === 'prototype' && ['transformed-target', 'offscreen-horizontal'].includes(testCase.label)) {
+				directComparison = await page.evaluate(async ({ label, threshold }) => {
+					const target = document.querySelector('#subject')
+					let directIntersecting
+					const observer = new IntersectionObserver(entries => { directIntersecting = entries.at(-1).isIntersecting })
+					observer.observe(target)
+					await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+					window.scrollTo(0, label === 'transformed-target' ? threshold - 200 : threshold)
+					await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+					const result = { directIntersecting, markerAnimated: target.classList.contains('aos-animate'), rect: target.getBoundingClientRect().toJSON() }
+					observer.disconnect()
+					window.scrollTo(0, 0)
+					await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+					return result
+				}, { label: testCase.label, threshold })
+				assert.notEqual(directComparison.directIntersecting, directComparison.markerAnimated, `${variant}: direct target observation did not show the expected geometry mismatch`)
+			}
+			const results = []
+			let prototypeEvidence = null
+			const targetYs = new Set([Math.floor(threshold) - 1, Math.floor(threshold), Math.ceil(threshold), Math.ceil(threshold) + 1].map(y => Math.max(0, y)))
+			if (testCase.mirror) {
+				const out = geometry.top + anchorHeight - testCase.offsetOut
+				for (const target of [Math.floor(out) - 1, Math.floor(out), Math.ceil(out), Math.ceil(out) + 1]) targetYs.add(target)
+			}
+			for (const target of [...targetYs].sort((a, b) => a - b)) {
+				const actual = await page.evaluate(async targetY => {
+					const started = performance.now()
+					if (window.scrollY !== targetY) {
+						await new Promise(resolve => {
+							const timeout = setTimeout(resolve, 100)
+							window.addEventListener('scroll', () => { clearTimeout(timeout); resolve() }, { once: true })
+							window.scrollTo(0, targetY)
+						})
+					}
+					await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+					return { scrollY: window.scrollY, animated: document.querySelector('#subject').classList.contains('aos-animate'), responseMs: performance.now() - started }
+				}, target)
+				const out = geometry.top + anchorHeight - testCase.offsetOut
+				const expected = actual.scrollY >= threshold && (testCase.once || !testCase.mirror || actual.scrollY < out)
+				if (variant === 'prototype' || (testCase.throttleDelay && actual.animated !== expected)) {
+					const settleStarted = Date.now()
+					await page.waitForFunction(animated => document.querySelector('#subject').classList.contains('aos-animate') === animated, expected, { timeout: testCase.throttleDelay ? 600 : 200 })
+					actual.responseMs += Date.now() - settleStarted
+					if (variant === 'prototype' && testCase.throttleDelay && actual.scrollY === threshold) actual.throttleIntervalMs = await page.evaluate(() => window.__ioRun.stats.lastApplyMs - window.__ioRun.stats.throttleWindowStartMs)
+				}
+				const settled = await page.locator('#subject').evaluate(element => element.classList.contains('aos-animate'))
+				assert.equal(settled, expected, `${variant}: ${testCase.label} at scrollY=${actual.scrollY}, expected threshold=${threshold}`)
+				if (variant === 'prototype' && testCase.throttleDelay && actual.scrollY === threshold) assert(actual.throttleIntervalMs >= 110 && actual.throttleIntervalMs < 300, `${variant}: throttle interval was ${actual.throttleIntervalMs}ms`)
+				results.push({ ...actual, animated: settled })
+			}
+			if (variant === 'prototype' && ['top-bottom', 'mirror-entry-exit', 'transformed-target', 'offscreen-horizontal', 'restored-scroll'].includes(testCase.label)) {
+				const beforeJump = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }))
+				for (const [target, expected] of [[await page.evaluate(() => document.documentElement.scrollHeight - innerHeight), true], [0, false]]) {
+					const jumped = await page.evaluate(async targetY => {
+						window.scrollTo(0, targetY)
+						await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+						return { scrollY, animated: document.querySelector('#subject').classList.contains('aos-animate') }
+					}, target)
+					const shouldAnimate = expected && jumped.scrollY >= threshold && (testCase.once || !testCase.mirror || jumped.scrollY < geometry.top + anchorHeight - testCase.offsetOut)
+					assert.equal(jumped.animated, shouldAnimate, `${variant}: ${testCase.label} jump at scrollY=${jumped.scrollY}`)
+				}
+				prototypeEvidence = await page.evaluate(async () => {
+					const dimensions = { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }
+					const stats = { ...window.__ioRun.stats }
+					window.__ioRun.cleanup()
+					const markerCount = document.querySelectorAll('i[data-edge]').length
+					const callbacks = window.__ioRun.stats.callbacks
+					window.scrollTo(0, 1)
+					await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+					return { dimensions, stats, markerCount, callbacksAfterCleanup: window.__ioRun.stats.callbacks - callbacks }
+				})
+				assert.deepEqual(prototypeEvidence.dimensions, prototypeBefore, `${variant}: ${testCase.label} markers changed document dimensions`)
+				assert.equal(prototypeEvidence.markerCount, 0, `${variant}: ${testCase.label} left markers after cleanup`)
+				assert.equal(prototypeEvidence.callbacksAfterCleanup, 0, `${variant}: ${testCase.label} delivered callbacks after cleanup`)
+			}
+			if (testCase.position !== 'fixed' && !testCase.hidden) assert.equal(geometry.top, testCase.anchorTop ?? 1800, `${variant}: ${testCase.label} reference top changed`)
+			assert.equal(geometry.height, testCase.hidden ? 0 : testCase.anchorTop !== undefined ? 101 : testCase.height ?? 101, `${variant}: ${testCase.label} reference height changed`)
+			if (testCase.initialScroll && variant !== 'prototype') assert(geometry.animated, `${variant}: ${testCase.label} did not initialize after restored scroll`)
+			observed.push({ label: testCase.label, threshold, initialScroll: testCase.initialScroll || 0, results, ...(directComparison ? { directComparison } : {}), ...(prototypeEvidence ? { prototype: prototypeEvidence } : {}) })
+		} finally { await page.close() }
+	}
+	return observed
+}
+
+async function prototypeScale(browser, base) {
+	const samples = []
+	for (const count of [30, 500, 1000]) {
+		const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+		try {
+			await page.goto(`${base}/geometry?variant=prototype`)
+			await page.addScriptTag({ path: path.join(__dirname, 'fixtures/aos-intersection-prototype.js') })
+			const result = await page.evaluate(async count => {
+				const items = []
+				for (let i = 0; i < count; i++) {
+					const element = document.createElement('div')
+					element.dataset.aos = 'fade-up'
+					element.style.height = '1px'
+					document.body.append(element)
+					const enter = 100 + i * 4
+					items.push({ element, enter, exit: enter + (i % 300), once: i % 2 === 0, mirror: i % 3 === 0 })
+				}
+				const before = { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }
+				const started = performance.now()
+				window.__ioScale = AOSIOPrototype.start(items)
+				await new Promise(resolve => {
+					const timeout = setTimeout(resolve, 3000)
+					const check = () => {
+						if (window.__ioScale.stats.entries < count * 2) return requestAnimationFrame(check)
+						clearTimeout(timeout)
+						resolve()
+					}
+					check()
+				})
+				const elapsedMs = performance.now() - started
+				const after = { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }
+				const stats = { ...window.__ioScale.stats }
+				window.__ioScale.cleanup()
+				return { count, elapsedMs, before, after, stats, markersAfterCleanup: document.querySelectorAll('i[data-edge]').length }
+			}, count)
+			assert.equal(result.stats.targets, count * 2, `${count} targets should produce two markers each`)
+			assert.equal(result.stats.entries, count * 2, `${count} targets should receive an initial IO notification`)
+			assert.equal(result.stats.recordsVisited, count, `${count} targets should update only affected records`)
+			assert.equal(result.stats.observerCount, 1, `${count} targets should share one observer`)
+			assert.deepEqual(result.after, result.before, `${count} markers changed document dimensions`)
+			assert.equal(result.markersAfterCleanup, 0, `${count} markers survived cleanup`)
+			samples.push(result)
+		} finally { await page.close() }
+	}
+	return samples
+}
+
 async function contracts(browser, base, variant) {
 	const { page, errors } = await pageFor(browser, base, variant)
 	let listenerCounts
 	let mutationRefreshes
 	let pageOffsetReads
 	let timings
+	let geometry
 	try {
 		const api = await page.evaluate(() => ['init', 'refresh', 'refreshHard'].every(name => typeof window.AOS[name] === 'function'))
 		assert(api, `${variant}: public AOS API missing`)
@@ -111,6 +349,7 @@ async function contracts(browser, base, variant) {
 			return { local, delayBefore, delayAfter, inherited, zero: getComputedStyle(zero).transitionDuration }
 		})
 		assert.deepEqual(timings, { local: '0.25s', delayBefore: '0s', delayAfter: '0.1s', inherited: '0.75s', zero: '0.75s' }, `${variant}: AOS timing CSS cascade`)
+		geometry = await geometryContracts(browser, base, variant)
 
 		const events = await page.evaluate(() => {
 			window.__events = []
@@ -250,7 +489,7 @@ async function contracts(browser, base, variant) {
 		await customStart.evaluate(() => document.dispatchEvent(new Event('anfb:later')))
 		await customStart.waitForFunction(() => document.querySelector('#subject').classList.contains('aos-init'))
 	} finally { await customStart.close() }
-	return { variant, anchors: anchors.length, api: true, once: true, mirror: true, dynamicRefresh: true, mutationRefreshes, pageOffsetReads, timings, externalOverride: true, customStartEventRebind: variant === 'candidate', listenerCounts }
+	return { variant, anchors: anchors.length, geometry, api: true, once: true, mirror: true, dynamicRefresh: true, mutationRefreshes, pageOffsetReads, timings, externalOverride: true, customStartEventRebind: variant === 'candidate', listenerCounts }
 }
 
 async function benchmark(browser, base) {
@@ -308,7 +547,7 @@ async function benchmark(browser, base) {
 }
 
 ;(async () => {
-	assert(['contract', 'benchmark'].includes(mode), `Unknown mode: ${mode}`)
+	assert(['contract', 'prototype', 'benchmark'].includes(mode), `Unknown mode: ${mode}`)
 	for (const name of ['control', 'candidate']) for (const asset of ['aos.js', 'init.js', 'aos.css']) assert(fs.existsSync(path.join(variants[name], 'build', asset)), `Missing ${name} build/${asset}`)
 	fs.mkdirSync(output, { recursive: true })
 	const server = createServer()
@@ -317,11 +556,14 @@ async function benchmark(browser, base) {
 	try {
 		const opts = { headless: true }
 		if ((args.browser || 'chromium') === 'chromium') opts.executablePath = browserPath
+		if ((args.browser || 'chromium') === 'firefox' && process.env.FIREFOX_PATH) opts.executablePath = process.env.FIREFOX_PATH
 		browser = await browserType.launch(opts)
 		const base = `http://127.0.0.1:${server.address().port}`
 		const results = mode === 'contract'
 			? await Promise.all([contracts(browser, base, 'control'), contracts(browser, base, 'candidate')])
-			: await benchmark(browser, base)
+			: mode === 'prototype'
+				? [{ variant: 'prototype', geometry: await geometryContracts(browser, base, 'prototype'), scale: await prototypeScale(browser, base) }]
+				: await benchmark(browser, base)
 		const file = path.join(output, `${mode}-${args.browser || 'chromium'}.json`)
 		fs.writeFileSync(file, JSON.stringify({ mode, browser: args.browser || 'chromium', results }, null, 2) + '\n')
 		console.log(JSON.stringify({ mode, file, results: mode === 'contract' ? results : `${results.length} samples` }, null, 2))

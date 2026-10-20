@@ -1,6 +1,6 @@
 # Plan: detección de entradas con IntersectionObserver
 
-Fecha: 2026-10-20. Estado: planificación lista para revisión; implementación pendiente. Rama: `codex/aos-intersection-observer`, creada desde `codex/aos-optimization` en `04b8e2a6e11eb377561170b626d2ad08dd7eb503`.
+Fecha: 2026-10-20. Estado: tareas 01 y 02 ejecutadas; checkpoint A pendiente de revisión humana antes de integrar en producción. Rama: `codex/aos-intersection-observer`, creada desde `codex/aos-optimization` en `04b8e2a6e11eb377561170b626d2ad08dd7eb503`.
 
 El motor optimizado y el ZIP entregado siguen siendo la referencia funcional. Su [plan anterior](archive/aos-optimization-2026-10-20/plan.md) y sus [tareas completadas](archive/aos-optimization-2026-10-20/todo.md) están archivados; los resultados permanecen en [aos-evaluation.md](../docs/aos-evaluation.md). No hay cambios de implementación en este plan.
 
@@ -35,7 +35,7 @@ El objetivo de soporte solicitado es una ventana aproximada de tres años: naveg
 
 ## Dependencias y orden
 
-La lista de ejecución y los checkpoints se mantienen únicamente en [todo.md](todo.md).
+La lista de ejecución y los checkpoints se mantienen únicamente en [todo.md](todo.md). La evidencia de caracterización y prototipo está en [aos-intersection-evaluation.md](../docs/aos-intersection-evaluation.md); la cobertura fue Chromium-only y está separada de las comparaciones de rendimiento pendientes.
 
 ```text
 01 Contratos y control → 02 Prototipo geométrico               → revisión A

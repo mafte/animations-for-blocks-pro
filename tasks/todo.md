@@ -1,6 +1,6 @@
 # Tareas: entradas con IntersectionObserver
 
-[Plan](plan.md), 2026-10-20. Estado: pendiente de revisión humana; implementación no iniciada. Rama `codex/aos-intersection-observer`, base optimizada `04b8e2a6e11eb377561170b626d2ad08dd7eb503`. Lista única de tareas y checkpoints; no hay tracker externo.
+[Plan](plan.md), 2026-10-20. Estado: tareas 01/02 terminadas en fixture; checkpoint A pendiente de revisión humana; integración de producción no iniciada. Rama `codex/aos-intersection-observer`, base optimizada `04b8e2a6e11eb377561170b626d2ad08dd7eb503`. Lista única de tareas y checkpoints; no hay tracker externo. Evidencia: [evaluación de IntersectionObserver](../docs/aos-intersection-evaluation.md).
 
 Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones; si aparecen más de cinco archivos sustantivos o una decisión independiente, dividir antes de implementar. Build generado y hash mecánico de lockfile se entregan con cada cambio de motor y se revisan aparte. No marcar criterios como cumplidos por el solo hecho de escribir una prueba.
 
@@ -9,9 +9,9 @@ Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones
 **Descripción:** Congelar el control independiente y reforzar el runner para que mida los puntos exactos de activación, no solo la eventual aparición de la clase. Registrar versiones objetivo y entornos de prueba disponibles antes de decidir el diseño.
 
 **Criterios de aceptación:**
-- [ ] Control del commit base con instalación independiente y manifiesto de hashes/versiones; tabla concreta de navegadores actuales y mínimos representativos de finales de 2023, con fuentes oficiales, disponibilidad y cobertura pendiente; localizar WordPress mínimo y actual.
-- [ ] Oráculo geométrico independiente del candidato y muestras debajo/en/encima para los nueve placements, offsets y ancla externa; registrar scroll real, altura, fórmula, redondeo y límites inalcanzables. Una alteración deliberada del umbral hace fallar el arnés.
-- [ ] Caracterizar retorno de API, opciones globales/locales, prioridad once/mirror, eventos con ID, clases personalizadas, scroll inicial/inverso/saltos y peculiaridades del control sin convertirlas en correcciones nuevas.
+- [x] Control extraído independientemente del commit base, hashes/versiones registrados; tabla concreta de navegadores actuales y mínimos representativos de finales de 2023 con fuentes oficiales y cobertura pendiente; WordPress mínimo y declarado como probado registrados. La reinstalación congelada de paquetes quedó limitada por DNS de npm.
+- [x] Oráculo geométrico independiente del candidato y muestras debajo/en/encima para los nueve placements, offsets y ancla externa; scroll real, altura, fórmula, redondeo y alcance de scroll registrados. Una alteración deliberada de +1 px hace fallar el arnés.
+- [x] Retorno de API, opciones globales/locales, prioridad once/mirror, eventos con ID, clases, scroll inicial/inverso/saltos y peculiaridades del control caracterizados sin nuevas correcciones.
 
 **Verificación:** `node tests/aos-browser.cjs --mode contract` con ambas variantes apuntando al control; muestras geométricas y ruido de referencia guardados en temporal privada. Revisar fechas de versiones con fuentes oficiales. No ejecutar fixtures WordPress todavía.
 
@@ -22,9 +22,9 @@ Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones
 **Descripción:** Probar una estrategia de observación que represente los umbrales verticales de AOS antes de modificar el motor distribuido. Resolver el riesgo de transformaciones, recortes y saltos rápidos al principio.
 
 **Criterios de aceptación:**
-- [ ] Prototipo exclusivo de pruebas que pasa los nueve placements, entrada/salida de mirror y anclas externas con tolerancia de 1 píxel CSS; probar saltos que omiten la zona observada, scroll restaurado, transform/overflow, elementos altos, anidados, fuera de pantalla horizontal, fixed/sticky y alturas cero frente al control.
-- [ ] Comparar referencias estables y, solo si es necesario, marcadores; documentar una estrategia elegida y su coste de observadores/objetivos/DOM con 30/500/1000 elementos y opciones heterogéneas. Ninguna variante altera las dimensiones o el contenido de la página ni deja recursos tras limpieza.
-- [ ] Demostrar estado final correcto y cadencia compatible con `throttleDelay` explícito; sin barrido global por scroll o por callback IO. Si no se cumple, documentar el caso que impide avanzar sin rebajar el contrato.
+- [x] Fixture IO compara los nueve placements, entrada/salida de mirror, `once` prioritario, ancla externa, saltos, scroll restaurado, transforms/clipping, alturas grandes/cero/ocultas, nested scroll, posición horizontal, fixed y sticky frente al control con tolerancia de 1 px CSS.
+- [x] Referencia de marcadores elegida de forma provisional tras comparar IO directo; coste de observadores/objetivos/DOM documentado para 30/500/1000 elementos heterogéneos. Dimensiones y capturas no cambian; no quedan recursos tras limpieza.
+- [x] Estado final y throttling explícito demostrados; el callback actualiza únicamente los registros notificados y no hay listener global de scroll en el prototipo.
 
 **Verificación:** Contratos geométricos del runner en Chromium y otro motor disponible, con prototipo cargado solo por la fixture; screenshots/layout antes y después; contadores de callbacks/objetivos y pruebas de salto. Mantener los bundles de producción intactos.
 
@@ -32,7 +32,7 @@ Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones
 
 ### Checkpoint A — Viabilidad antes de integración
 
-- [ ] Geometría y estado demostrados, enfoque y costes documentados; las ausencias de entorno quedan explícitas.
+- [x] Geometría y estado demostrados, enfoque y costes documentados; las limitaciones de instalación limpia y cobertura de navegador quedan explícitas.
 - [ ] Revisar con el usuario la estrategia y cualquier diferencia de contrato antes de integrar el motor. Si falla, presentar el caso y revisar el diseño.
 
 ## 03 — Activar top-bottom mediante IO
