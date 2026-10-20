@@ -1,6 +1,6 @@
 # Tareas: entradas con IntersectionObserver
 
-[Plan](plan.md), 2026-10-20. Estado: tareas 01/02 completadas; integración top-bottom en progreso; el usuario autorizó continuar con el resto del plan. Rama `codex/aos-intersection-observer`, base optimizada `04b8e2a6e11eb377561170b626d2ad08dd7eb503`. Lista única de tareas y checkpoints; no hay tracker externo. Evidencia: [evaluación de IntersectionObserver](../docs/aos-intersection-evaluation.md).
+[Plan](plan.md), 2026-10-20. Estado: tareas 01-04 completadas; ciclo de vida 05 en progreso; el usuario autorizó continuar con el resto del plan. Rama `codex/aos-intersection-observer`, base optimizada `04b8e2a6e11eb377561170b626d2ad08dd7eb503`. Lista única de tareas y checkpoints; no hay tracker externo. Evidencia: [evaluación de IntersectionObserver](../docs/aos-intersection-evaluation.md).
 
 Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones; si aparecen más de cinco archivos sustantivos o una decisión independiente, dividir antes de implementar. Build generado y hash mecánico de lockfile se entregan con cada cambio de motor y se revisan aparte. No marcar criterios como cumplidos por el solo hecho de escribir una prueba.
 
@@ -71,13 +71,15 @@ Cada tarea conserva el contrato del plan. Los archivos indicados son previsiones
 **Descripción:** Asegurar que reinit, cambios de contenido y recálculos de geometría mantienen un único conjunto válido de recursos y conservan las mejoras de mutaciones de la rama base.
 
 **Criterios de aceptación:**
-- [ ] Cien refresh y cien refreshHard, reinit/opciones/disable/startEvent no acumulan observadores, objetivos, timers ni referencias a nodos retirados; callbacks pendientes de una generación anterior no escriben estado.
-- [ ] Inserción, eliminación, reemplazo y nodos anidados conservan un refreshHard por entrega relevante y cero por cambios irrelevantes; mutaciones auxiliares propias no generan bucles ni ocultan cambios reales.
-- [ ] Resize/orientación, cambios de altura y carga tardía actualizan los límites mediante el contrato de refresh existente; registros de once/mirror y las opciones `disableMutationObserver`/`debounceDelay` conservan su comportamiento.
+- [x] Cien refresh y cien refreshHard, reinit/opciones/disable/startEvent no acumulan observadores, objetivos, timers ni referencias a nodos retirados; callbacks pendientes de una generación anterior no escriben estado.
+- [x] Inserción, eliminación, reemplazo y nodos anidados conservan un refreshHard por entrega relevante y cero por cambios irrelevantes; mutaciones auxiliares propias no generan bucles ni ocultan cambios reales.
+- [ ] Resize/orientación y `refresh()` explícito tras cambios de altura actualizan los límites. Falta comprobar el caso de carga tardía de recursos; se conserva el contrato actual y no se añade `ResizeObserver`.
 
 **Verificación:** Regresiones de ciclo de vida del runner, conteos de recursos antes/después y snapshots de nodos/referencias cuando sean medibles; contratos, `npm test`, `npm run build`. Separar el coste de refresh de la ruta de scroll.
 
 **Dependencias:** Checkpoint B revisado. **Archivos previstos:** parche AOS, `tests/aos-browser.cjs`, `tests/aos-contract-fixture.cjs`, `docs/aos-intersection-evaluation.md`; lockfile/build mecánicos. **Alcance:** M, 4 archivos.
+
+**Evidencia parcial en Chromium:** 100 `refresh` + 100 `refreshHard` y 20 reinit dejan un observer IO con un marcador; callback obsoleto sin efecto; inserción/eliminación/reemplazo conservan marcadores en correspondencia con los elementos; resize recalcula en +100 px al reducir viewport 200 px; orientationchange recrea un solo observer; `refresh()` tras cambiar altura recalcula el umbral; disable dinámico libera IO, marcadores y MutationObserver. No se probó un recurso de imagen que cargue tarde sin un refresh explícito.
 
 ## 06 — Preservar arranque y salida segura
 

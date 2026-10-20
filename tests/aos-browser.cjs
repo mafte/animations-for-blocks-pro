@@ -60,6 +60,25 @@ async function pageFor(browser, base, variant, anchor = '') {
 	const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
 	const errors = []
 	page.on('pageerror', error => errors.push(error.message))
+	await page.addInitScript(() => {
+		const NativeObserver = window.IntersectionObserver
+		if (!NativeObserver) return
+		window.__activeIO = new Set()
+		window.__allIO = []
+		window.IntersectionObserver = class extends NativeObserver {
+			constructor(callback, options) {
+				const emit = (entries, observer) => callback(entries, observer)
+				super(emit, options)
+				this.__emit = emit
+				this.__targets = new Set()
+				this.__seen = []
+				window.__allIO.push(this)
+			}
+			observe(target) { this.__targets.add(target); this.__seen.push(target); window.__activeIO.add(this); return super.observe(target) }
+			unobserve(target) { this.__targets.delete(target); return super.unobserve(target) }
+			disconnect() { window.__activeIO.delete(this); this.__targets.clear(); return super.disconnect() }
+		}
+	})
 	await page.goto(`${base}/fixture?variant=${variant}${anchor ? `&anchor=${anchor}` : ''}`)
 	await page.waitForFunction(() => window.AOS && document.querySelector('#subject')?.classList.contains('aos-init'))
 	return { page, errors }
@@ -199,12 +218,20 @@ async function contracts(browser, base, variant) {
 		assert(api, `${variant}: public AOS API missing`)
 		listenerCounts = await page.evaluate(() => {
 			const active = type => window.__listeners.get(type)?.size || 0
+			const io = () => ({ observers: window.__activeIO?.size || 0, targets: [...(window.__activeIO || [])].reduce((sum, observer) => sum + observer.__targets.size, 0) })
 			const observersAfterInit = window.__activeObservers.size
 			const afterInit = active('scroll')
+			const ioAfterInit = io()
+			const retiredIO = window.__allIO?.[0]
+			const retiredMarker = retiredIO?.__seen[0]
 			for (let i = 0; i < 100; i++) AOS.refresh()
 			const after100Refresh = active('scroll')
 			for (let i = 0; i < 100; i++) AOS.refreshHard()
 			const after100RefreshHard = active('scroll')
+			const ioAfter100RefreshHard = io()
+			if (retiredMarker?.__aosElement) retiredMarker.__aosElement.position.in = -1
+			if (retiredIO && retiredMarker) retiredIO.__emit([{ target: retiredMarker }], retiredIO)
+			const staleCallbackChangedState = document.querySelector('#subject').classList.contains('aos-animate')
 			const observersAfter100RefreshHard = window.__activeObservers.size
 			for (let i = 0; i < 20; i++) AOS.init({ throttleDelay: 25 + i, debounceDelay: 10 + i })
 			AOS.init({ duration: 250, easing: 'linear' })
@@ -212,7 +239,7 @@ async function contracts(browser, base, variant) {
 			AOS.init({ disableMutationObserver: true })
 			const observersDisabled = window.__activeObservers.size
 			AOS.init({ disableMutationObserver: false })
-			return { afterInit, after100Refresh, after100RefreshHard, after20Reinit: active('scroll'), load: active('load'), resize: active('resize'), orientationchange: active('orientationchange'), observersAfterInit, observersAfter100RefreshHard, observersAfter20Reinit: window.__activeObservers.size, observersDisabled, updatedOptions }
+			return { afterInit, after100Refresh, after100RefreshHard, after20Reinit: active('scroll'), load: active('load'), resize: active('resize'), orientationchange: active('orientationchange'), observersAfterInit, observersAfter100RefreshHard, observersAfter20Reinit: window.__activeObservers.size, observersDisabled, updatedOptions, ioAfterInit, ioAfter100RefreshHard, ioAfter20Reinit: io(), staleCallbackChangedState }
 		})
 		if (variant === 'candidate') {
 			assert.equal(listenerCounts.after100Refresh, 0, `${variant}: refresh must not add a scroll listener on the IO path`)
@@ -225,6 +252,10 @@ async function contracts(browser, base, variant) {
 			assert.equal(listenerCounts.observersAfter100RefreshHard, 1, `${variant}: refreshHard duplicated the mutation observer`)
 			assert.equal(listenerCounts.observersAfter20Reinit, 1, `${variant}: reinit duplicated the mutation observer`)
 			assert.equal(listenerCounts.observersDisabled, 0, `${variant}: disableMutationObserver did not disconnect`)
+			assert.deepEqual(listenerCounts.ioAfterInit, { observers: 1, targets: 1 }, `${variant}: init should own one observer and one marker`)
+			assert.deepEqual(listenerCounts.ioAfter100RefreshHard, { observers: 1, targets: 1 }, `${variant}: refreshHard accumulated IO resources`)
+			assert.deepEqual(listenerCounts.ioAfter20Reinit, { observers: 1, targets: 1 }, `${variant}: reinit accumulated IO resources`)
+			assert.equal(listenerCounts.staleCallbackChangedState, false, `${variant}: a disconnected observer changed element state`)
 			assert.deepEqual(listenerCounts.updatedOptions, { duration: '250', easing: 'linear' }, `${variant}: reinit did not update global settings`)
 		}
 		const css = await page.locator('#subject').evaluate(element => getComputedStyle(element).opacity)
@@ -327,7 +358,7 @@ async function contracts(browser, base, variant) {
 			replacement.dataset.aos = 'fade-up'
 			placeholder.replaceWith(replacement)
 			await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-			return { added, removed, replaced: { deliveries: window.__aosObserverDeliveries - replaceBefore, refreshes } }
+			return { added, removed, replaced: { deliveries: window.__aosObserverDeliveries - replaceBefore, refreshes }, io: { observers: window.__activeIO?.size || 0, targets: [...(window.__activeIO || [])].reduce((sum, observer) => sum + observer.__targets.size, 0), markers: document.querySelectorAll('[data-aos-observer]').length, aosElements: document.querySelectorAll('[data-aos]').length } }
 		})
 		if (variant === 'candidate') {
 			assert.equal(mutationRefreshes.added.deliveries, 1, `${variant}: expected one observer delivery for synchronous additions`)
@@ -336,6 +367,7 @@ async function contracts(browser, base, variant) {
 			assert.equal(mutationRefreshes.removed.refreshes, 1, `${variant}: removals should trigger one refreshHard per delivery`)
 			assert.equal(mutationRefreshes.replaced.deliveries, 1, `${variant}: expected one observer delivery for replacement`)
 			assert.equal(mutationRefreshes.replaced.refreshes, 1, `${variant}: replacement should trigger one refreshHard per delivery`)
+			assert.deepEqual(mutationRefreshes.io, { observers: 1, targets: mutationRefreshes.io.aosElements, markers: mutationRefreshes.io.aosElements, aosElements: mutationRefreshes.io.aosElements }, `${variant}: mutation refresh left stale observer targets`)
 		}
 		pageOffsetReads = await page.evaluate(() => {
 			const pageOffset = window.pageYOffset
@@ -393,7 +425,49 @@ async function contracts(browser, base, variant) {
 		await customStart.evaluate(() => document.dispatchEvent(new Event('anfb:later')))
 		await customStart.waitForFunction(() => document.querySelector('#subject').classList.contains('aos-init'))
 	} finally { await customStart.close() }
-	return { variant, anchors: anchors.length, geometry, api: true, once: true, mirror: true, dynamicRefresh: true, mutationRefreshes, pageOffsetReads, timings, externalOverride: true, customStartEventRebind: variant === 'candidate', listenerCounts }
+	const dynamicDisable = await pageFor(browser, base, variant)
+	try {
+		const resources = await dynamicDisable.page.evaluate(() => {
+			window.__disabled = false
+			AOS.init({ disable: () => window.__disabled })
+			window.__disabled = true
+			AOS.refreshHard()
+			return { observers: window.__activeIO?.size || 0, markers: document.querySelectorAll('[data-aos-observer]').length, scrollListeners: window.__listeners.get('scroll')?.size || 0, mutationObservers: window.__activeObservers.size }
+		})
+		if (variant === 'candidate') assert.deepEqual(resources, { observers: 0, markers: 0, scrollListeners: 0, mutationObservers: 0 }, `${variant}: dynamic disable left observer resources active`)
+	} finally { await dynamicDisable.page.close() }
+	const heightChange = await pageFor(browser, base, variant, 'bottom-bottom')
+	let heightRefresh = null
+	try {
+		if (variant === 'candidate') {
+			heightRefresh = await heightChange.page.evaluate(() => {
+				const marker = document.querySelector('[data-aos-observer]')
+				const before = parseFloat(marker.style.top)
+				document.querySelector('#subject').style.height = '180px'
+				AOS.refresh()
+				return { before, after: parseFloat(document.querySelector('[data-aos-observer]').style.top), observers: window.__activeIO.size }
+			})
+			assert.equal(heightRefresh.after - heightRefresh.before, 100, `${variant}: refresh did not recalculate a changed element height`)
+			assert.equal(heightRefresh.observers, 1, `${variant}: height refresh accumulated observers`)
+		}
+	} finally { await heightChange.page.close() }
+	const resize = await pageFor(browser, base, variant, 'top-center')
+	let viewportRefresh = null
+	try {
+		if (variant === 'candidate') {
+			viewportRefresh = await resize.page.evaluate(() => ({ top: parseFloat(document.querySelector('[data-aos-observer]').style.top), instances: window.__allIO.length }))
+			await resize.page.setViewportSize({ width: 1280, height: 600 })
+			await resize.page.waitForTimeout(80)
+			const resizedTop = await resize.page.locator('[data-aos-observer]').evaluate(marker => parseFloat(marker.style.top))
+			await resize.page.evaluate(() => window.dispatchEvent(new Event('orientationchange')))
+			await resize.page.waitForTimeout(80)
+			const orientation = await resize.page.evaluate(() => ({ instances: window.__allIO.length, active: window.__activeIO.size }))
+			assert.equal(resizedTop - viewportRefresh.top, 100, `${variant}: resize did not recalculate viewport threshold`)
+			assert(orientation.instances > viewportRefresh.instances, `${variant}: orientation change did not refresh IO`)
+			assert.equal(orientation.active, 1, `${variant}: orientation refresh accumulated IO observers`)
+		}
+	} finally { await resize.page.close() }
+	return { variant, anchors: anchors.length, geometry, api: true, once: true, mirror: true, dynamicRefresh: true, dynamicDisable: true, heightRefresh, viewportRefresh, mutationRefreshes, pageOffsetReads, timings, externalOverride: true, customStartEventRebind: variant === 'candidate', listenerCounts }
 }
 
 ;(async () => {

@@ -1,5 +1,5 @@
 diff --git a/src/js/aos.js b/src/js/aos.js
-index c386419..02b51ef 100644
+index c386419..74aa2e6 100644
 --- a/src/js/aos.js
 +++ b/src/js/aos.js
 @@ -7,2 +6,0 @@
@@ -78,15 +78,18 @@ index c386419..02b51ef 100644
 +    scrollHandlerDelay = options.throttleDelay;
 +    window.addEventListener('scroll', scrollHandler);
 +  }
-@@ -183,0 +227 @@ const init = function init(settings) {
-+  const wasInitialized = initialized;
-@@ -207,0 +252,2 @@ const init = function init(settings) {
-+  } else {
-+    observer.disconnect();
-@@ -214,0 +261,2 @@ const init = function init(settings) {
+@@ -133,0 +177,2 @@ const refreshHard = function refreshHard() {
 +    clearListeners();
 +    observer.disconnect();
-@@ -235,9 +283,19 @@ const init = function init(settings) {
+@@ -183,0 +229 @@ const init = function init(settings) {
++  const wasInitialized = initialized;
+@@ -207,0 +254,2 @@ const init = function init(settings) {
++  } else {
++    observer.disconnect();
+@@ -214,0 +263,2 @@ const init = function init(settings) {
++    clearListeners();
++    observer.disconnect();
+@@ -235,9 +285,19 @@ const init = function init(settings) {
 -  if (['DOMContentLoaded', 'load'].indexOf(options.startEvent) === -1) {
 -    // Listen to options.startEvent and initialize AOS
 -    document.addEventListener(options.startEvent, function() {
@@ -115,13 +118,13 @@ index c386419..02b51ef 100644
 +      };
 +      startEventTarget.addEventListener(startEventName, startEventHandler);
 +    }
-@@ -250 +308,4 @@ const init = function init(settings) {
+@@ -250 +310,4 @@ const init = function init(settings) {
 -    // Initialize AOS if default startEvent was already fired
 +    if (startEventHandler) {
 +      startEventTarget.removeEventListener(startEventName, startEventHandler);
 +      startEventHandler = null;
 +    }
-@@ -257,4 +318,10 @@ const init = function init(settings) {
+@@ -257,4 +320,10 @@ const init = function init(settings) {
 -  window.addEventListener(
 -    'resize',
 -    debounce(refresh, options.debounceDelay, true)
@@ -136,7 +139,7 @@ index c386419..02b51ef 100644
 +    resizeHandlerDelay = options.debounceDelay;
 +    window.addEventListener('resize', resizeHandler);
 +  }
-@@ -262,4 +329,12 @@ const init = function init(settings) {
+@@ -262,4 +331,12 @@ const init = function init(settings) {
 -  window.addEventListener(
 -    'orientationchange',
 -    debounce(refresh, options.debounceDelay, true)
