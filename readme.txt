@@ -5,7 +5,7 @@ Tags: gutenberg, block, animation, animate, slide
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.5.0
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,7 +17,7 @@ Lightweight plugin that adds additional inspector controls to block editor block
 
 [Demo](https://playground.wordpress.net/?plugin=animations-for-blocks&url=%2Fwp-admin%2Fpost.php%3Fpost%3D2%26action%3Dedit)
 
-This plugin uses [AOS - Animate on scroll library](https://github.com/michalsnik/aos) and adds its' stylesheet (**2.8 kB**) and script (**5.2 kB**) to the front end as well as a script that initializes the animations (**1.3 kB**).
+This plugin uses [AOS - Animate on scroll library](https://github.com/michalsnik/aos) and adds its' stylesheet (**2.9 kB gzip**) and script (**3.5 kB gzip**) to the front end as well as a script that initializes the animations (**2.3 kB gzip**).
 
 == Frequently Asked Questions ==
 
@@ -78,6 +78,10 @@ Adds typing, word reveal and counters to selected text in Paragraph, Heading and
 WP-CLI commands: `wp anfb inspect`, `apply`, `clear`, `restore`. Run with an explicit `--user` who can edit the post. Read `docs/codex.md` for the versioned JSON format, dry-run workflow and private backups. Read `docs/testing.md` for build and isolated tests.
 
 == Changelog ==
+
+= 1.6.0 =
+* Reduce repeated AOS work during scrolling and DOM changes, including duplicated event listeners and mutation refreshes.
+* Reduce duplicated editor animation CSS and ensure the AOS bundle gets its own cache version.
 
 = 1.5.0 =
 * New animation settings keep content editable when the plugin is deactivated and preserve settings when it is reactivated.
