@@ -1,11 +1,11 @@
 # Tareas: AOS original
 
-[Spec aprobada](../SPEC-aos-optimization.md). [Plan](plan.md) pendiente de revisión; ejecución sin iniciar. Checklist única, sin tracker externo. ANFB_AOS_AUDIT se define en el plan.
+[Spec aprobada](../SPEC-aos-optimization.md). [Plan](plan.md) aprobado; ejecución en curso. Checklist única, sin tracker externo. ANFB_AOS_AUDIT se define en el plan.
 
 ## 01 — Congelar control y entorno
 
-- [ ] Crear control independiente de master; manifest con revisiones/hashes/versiones y dependencias propias sin enlaces al candidato.
-- [ ] Registrar build/pruebas originales y descubrir sitios/navegadores; comprobar ANFB_TEST_SITE efectivo y versiones mínimas disponibles.
+- [x] Crear control independiente de master; manifest con revisiones/hashes/versiones y dependencias propias sin enlaces al candidato.
+- [x] Registrar build/pruebas originales y descubrir sitios/navegadores; comprobar ANFB_TEST_SITE efectivo y versiones mínimas disponibles.
 
 **Verificar:** comandos de control del plan, node --version y corepack pnpm --version; conservar logs/hashes. **Depende:** ninguna. **Archivos:** docs/aos-evaluation.md; control/manifest/logs en temporal privada. **Tamaño:** S.
 
