@@ -1,6 +1,6 @@
 # Tareas: evaluación de AOSIO
 
-Estado: detenido en T1 por licencia no especificada; T2–T8 no iniciadas.
+Estado: implementación privada autorizada; T2–T4 en curso.
 Contrato: [spec aprobada](../SPEC-aosio-evaluation.md). Decisiones: [plan](plan.md).
 Trabajo anterior completo: [archivo preservado](completed/2026-10-19-wordpress-animation-skill-todo.md).
 
@@ -21,19 +21,19 @@ Trabajo anterior completo: [archivo preservado](completed/2026-10-19-wordpress-a
 **Descripción:** Crear un runner/fixture compartidos que contrasten contrato y rendimiento con ambos builds; completar la línea base.
 
 **Acceptance criteria:**
-- [ ] Fixture toma catálogo/variantes/curvas/anclajes del esquema y añade casos geométricos; ningún catálogo manual duplicado.
+- [ ] Fixture reutilizable toma catálogo/variantes/curvas/anclajes del esquema y añade casos geométricos; ningún catálogo manual duplicado.
 - [ ] Modo compatibility captura estilos/transiciones/estados/eventos/geometría y separa latencia; control contra control no produce diferencias espurias.
-- [ ] Modo benchmark entrega JSON con metadata, visibilidad final, timeouts/limpieza; smoke del control con 20/100/500 elementos.
+- [x] Smoke preliminar sirve ambos builds en Chromium, confirma estado visible, clases y eventos para 20/100/500 elementos y registra JSON. No es benchmark comparativo.
 
-**Verification:** Comandos futuros del plan con ambos paths al control; comprobar unidades y casos conocidos de tiempo/desplazamiento; `npm test` conserva resultados iniciales. Runner todavía no existe al escribir este plan.
+**Verification:** Smoke ejecutado con AOS y AOSIO compilados desde sus fuentes; evidencia y límites en `docs/aosio-evaluation.md`. El runner completo de compatibilidad/benchmark sigue pendiente.
 **Dependencies:** T1.
 **Files likely touched:** `tests/aos-engine.cjs`, `tests/aos-engine.html`, `docs/aosio-evaluation.md`.
 **Estimated scope:** Medium, 3 archivos.
 
 ## Checkpoint A: Viabilidad
 - [x] SHA fijado y build upstream técnicamente viable en copia temporal.
-- [x] Licencia ausente; bloqueo de redistribución documentado. Se deriva a T9 sin correr T2–T8 ni integrar el fork.
-- [x] Línea base AOS reproducible y fallos/avisos registrados. Ningún código de producto modificado.
+- [x] Licencia ausente; autorización del usuario limitada a evaluación privada en esta rama. No publicar ni redistribuir hasta aclarar derechos.
+- [x] Línea base AOS reproducible; smoke preliminar de ambos motores. Falta la matriz completa.
 
 ## T3: Ejecutar una entrada candidata
 **Descripción:** Integrar el motor JS fijado en la carga actual. Puede conservarse temporalmente CSS original para aislar API; no representa compatibilidad completa.
@@ -44,7 +44,7 @@ Trabajo anterior completo: [archivo preservado](completed/2026-10-19-wordpress-a
 - [ ] Snapshot candidato y configuración CSS identificados; separación de recursos frontend/editor comprobada.
 
 **Verification:** Instalación según T1, `npm test`, `npm run build`, runner para entrada simple y recursos reales en navegador.
-**Dependencies:** Checkpoint A.
+**Dependencies:** Checkpoint A; uso privado del ZIP autorizado expresamente por el usuario.
 **Files likely touched:** `package.json`, `pnpm-lock.yaml`, `webpack.config.js`, `src/init.js`; `build/` generado.
 **Estimated scope:** Medium, 4 archivos fuente/config; revisión de generados por lotes <=5.
 
@@ -131,9 +131,8 @@ Trabajo anterior completo: [archivo preservado](completed/2026-10-19-wordpress-a
 **Descripción:** Consolidar resultados y distribución revisable; comprobar retorno al control sin tocar trabajo previo.
 
 **Acceptance criteria:**
-- [x] Informe con SHA/licencia, comandos reales, línea base y bloqueo preciso; matriz, adaptaciones y métricas se declaran pendientes por la licencia.
-- [x] No se creó build candidato del plugin; se conservó AOS en el checkout y se verificó su build en snapshot independiente.
-- [x] T1 y ruta de bloqueo reflejan el trabajo ejecutado; tareas T2–T8 no iniciadas. No hubo publicación/merge ni cambios en instalaciones existentes.
+- [ ] Informe con SHA/licencia, comandos reales, línea base, matriz, adaptaciones y métricas.
+- [ ] Recomendación completa después de T2–T8; sin publicación ni cambios en instalaciones existentes.
 
 **Verification:** Revisar diff/Definition of Done; artefactos corresponden a última corrida válida. Repetir checks solo por cambios posteriores; instalar desde lock y volver al control en copias distintas. Revisión humana de resultados antes de adoptar.
 **Dependencies:** Checkpoint D; se completa en la ruta de bloqueo de T1 sin afirmar compatibilidad ni mejora de rendimiento.
@@ -141,6 +140,5 @@ Trabajo anterior completo: [archivo preservado](completed/2026-10-19-wordpress-a
 **Estimated scope:** Medium, 3 archivos de documentación/estado más revisión de distribución.
 
 ## Checkpoint final
-- [x] Bloqueo legal/técnico documentado con evidencia; compatibilidad y rendimiento explícitamente pendientes.
-- [x] Recomendación actual: no adoptar ni distribuir sin permiso del titular; mantener AOS mientras se resuelve.
-- [x] Rama local lista para revisar; sin publicación ni merge.
+- [ ] Evidencia de compatibilidad y rendimiento revisada; los pendientes impiden afirmar compatibilidad completa.
+- [ ] Recomendación final y límite de distribución documentados.

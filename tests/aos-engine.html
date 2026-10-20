@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<style>
+		body { margin: 0; font: 16px sans-serif; }
+		#spacer { height: 900px; }
+		.item { min-height: 120px; margin: 0 0 320px; padding: 24px; background: #ddd; }
+	</style>
+	<script>
+		window.anfbAosSettings = { once: true }
+		window.anfbEngineEvents = []
+		document.addEventListener('aos:in', event => window.anfbEngineEvents.push(event.detail?.id || event.detail?.node?.id || 'in'))
+		document.addEventListener('aos:out', event => window.anfbEngineEvents.push(event.detail?.id || event.detail?.node?.id || 'out'))
+	</script>
+</head>
+<body>
+	<div id="spacer"></div>
+	<main id="items">__ITEMS__</main>
+</body>
+</html>
