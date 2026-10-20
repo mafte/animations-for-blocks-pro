@@ -2,6 +2,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const http = require('node:http')
 const path = require('node:path')
+const zlib = require('node:zlib')
 const { chromium, firefox, webkit } = require('@playwright/test')
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((pairs, value, index, all) => {
@@ -15,9 +16,9 @@ const browserType = ({ chromium, firefox, webkit })[args.browser || 'chromium']
 const browserPath = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const anchors = ['top-bottom', 'center-bottom', 'bottom-bottom', 'top-center', 'center-center', 'bottom-center', 'top-top', 'center-top', 'bottom-top']
 
-function fixture(override = false, anchor = '', count = 0, customStart = false) {
+function fixture(override = false, anchor = '', count = 0, customStart = false, heterogeneous = false) {
 	const placement = anchors.includes(anchor) ? ` data-aos-anchor-placement="${anchor}"` : ''
-	const items = Array.from({ length: Math.min(1000, Math.max(0, count)) }, (_, i) => `<div class="bench" data-aos="fade-up" style="height:12px">${i}</div>`).join('')
+	const items = Array.from({ length: Math.min(1000, Math.max(0, count)) }, (_, i) => `<div class="bench" data-aos="fade-up"${heterogeneous ? ` data-aos-anchor-placement="${anchors[i % anchors.length]}" data-aos-offset="${(i % 7 - 3) * 12}"${i % 3 === 0 ? ' data-aos-mirror="true"' : ''}` : ''} style="height:${heterogeneous ? 8 + i % 17 : 12}px">${i}</div>`).join('')
 	return `<!doctype html><html class="no-js"><head><meta charset="utf-8"><link rel="stylesheet" href="/VARIANT/build/aos.css"><style>#spacer{height:1600px}[data-aos]{transition-duration:0s}</style><script>document.documentElement.classList.remove('no-js');window.anfbAosSettings={offset:0,duration:0,delay:0${customStart ? ",startEvent:'anfb:test'" : ''}};window.__listeners=new Map();const __add=window.addEventListener,__remove=window.removeEventListener;window.addEventListener=function(type,listener,options){if(!window.__listeners.has(type))window.__listeners.set(type,new Set());window.__listeners.get(type).add(listener);return __add.call(this,type,listener,options)};window.removeEventListener=function(type,listener,options){window.__listeners.get(type)?.delete(listener);return __remove.call(this,type,listener,options)};window.__activeObservers=new Set();window.__aosObserverDeliveries=0;const __MutationObserver=window.MutationObserver;window.MutationObserver=class extends __MutationObserver{constructor(callback){const aos=new Error().stack.includes('/build/aos.js');super(records=>{if(aos&&records.some(record=>[...record.addedNodes,...record.removedNodes].some(node=>node.matches?.('[data-aos]')||node.querySelector?.('[data-aos]'))))window.__aosObserverDeliveries++;callback(records)});this.__aosObserver=aos}observe(...args){if(this.__aosObserver)window.__activeObservers.add(this);return super.observe(...args)}disconnect(){if(this.__aosObserver)window.__activeObservers.delete(this);return super.disconnect()}};let __aos;Object.defineProperty(window,'AOS',{configurable:true,get(){return __aos},set(engine){__aos=engine;window.__aosReadyMs=performance.now()}});${override ? 'window.AOS={init:function(){window.__externalInit=(window.__externalInit||0)+1}};' : ''}</script></head><body><div id="spacer"></div><div id="subject" data-aos="fade-up" data-aos-id="contract" data-aos-offset="0"${placement} style="height:80px"></div>${items}<div style="height:1800px"></div><script defer src="/VARIANT/build/aos.js"></script><script defer src="/VARIANT/build/init.js"></script></body></html>`
 }
 
@@ -38,7 +39,7 @@ function createServer() {
 		const url = new URL(request.url, 'http://localhost')
 		if (url.pathname === '/fixture') {
 			response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-			return response.end(fixture(url.searchParams.get('override') === '1', url.searchParams.get('anchor'), Number(url.searchParams.get('count')), url.searchParams.get('startEvent') === '1').replaceAll('/VARIANT', `/${url.searchParams.get('variant') || 'control'}`))
+			return response.end(fixture(url.searchParams.get('override') === '1', url.searchParams.get('anchor'), Number(url.searchParams.get('count')), url.searchParams.get('startEvent') === '1', url.searchParams.get('heterogeneous') === '1').replaceAll('/VARIANT', `/${url.searchParams.get('variant') || 'control'}`))
 		}
 		if (url.pathname === '/geometry') {
 			const inlineOffset = url.searchParams.has('inlineOffset') ? Number(url.searchParams.get('inlineOffset')) : null
@@ -504,8 +505,131 @@ async function contracts(browser, base, variant) {
 	return { variant, anchors: anchors.length, geometry, api: true, once: true, mirror: true, dynamicRefresh: true, dynamicDisable: true, heightRefresh, viewportRefresh, mutationRefreshes, pageOffsetReads, timings, externalOverride: true, customStartEventRebind: variant === 'candidate', failureModes: failures, listenerCounts }
 }
 
+async function profile(browser, base) {
+	const counts = (args.counts || '0,30,100,500,1000').split(',').map(Number)
+	const viewports = args.viewport ? [{ name: args.viewport, width: args.viewport === 'mobile' ? 390 : 1280, height: args.viewport === 'mobile' ? 844 : 800 }] : [{ name: 'desktop', width: 1280, height: 800 }, { name: 'mobile', width: 390, height: 844 }]
+	const cpus = args.cpu ? [Number(args.cpu)] : [1, 4]
+	const samples = Number(args.samples || 5)
+	const steps = Number(args.steps || 30)
+	assert(counts.every(count => Number.isInteger(count) && count >= 0 && count <= 1000), 'Invalid --counts')
+	assert(viewports.every(viewport => ['desktop', 'mobile'].includes(viewport.name)), 'Invalid --viewport')
+	assert(cpus.every(cpu => [1, 4].includes(cpu)), 'Invalid --cpu')
+	assert(Number.isInteger(samples) && samples >= 1 && samples <= 10 && Number.isInteger(steps) && steps >= 10 && steps <= 100, 'Invalid --samples/--steps')
+	const files = ['aos.js', 'init.js', 'aos.css'].map(name => {
+		const bytes = fs.statSync(path.join(variants.candidate, 'build', name)).size
+		return { name, rawBytes: bytes, gzipBytes: zlib.gzipSync(fs.readFileSync(path.join(variants.candidate, 'build', name))).length }
+	})
+	const results = []
+	const measure = async (variant, count, heterogeneous, viewport, cpu, label) => {
+		const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } })
+		const page = await context.newPage()
+		const session = await context.newCDPSession(page)
+		await session.send('Emulation.setCPUThrottlingRate', { rate: cpu })
+		await session.send('Performance.enable')
+		await page.goto(`${base}/fixture?variant=${variant}&count=${count}&heterogeneous=${Number(heterogeneous)}`)
+		await page.waitForFunction(() => window.AOS)
+		const initReadyMs = await page.evaluate(() => window.__aosReadyMs ?? null)
+		await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+		const refreshMs = await page.evaluate(() => { const start = performance.now(); AOS.refresh(); return performance.now() - start })
+		const maxScroll = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight)
+		await page.evaluate(async max => {
+			window.scrollTo(0, max)
+			await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+			window.scrollTo(0, 0)
+			await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+		}, maxScroll)
+		const before = new Map((await session.send('Performance.getMetrics')).metrics.map(item => [item.name, item.value]))
+		const measured = await page.evaluate(async ({ steps }) => {
+			const durations = [], longTasks = []
+			let eventCount = 0, firstEventAt = null, nextFrameAt = null
+			const observer = typeof PerformanceObserver === 'function' ? new PerformanceObserver(list => longTasks.push(...list.getEntries().map(entry => entry.duration))) : null
+			try { observer?.observe({ type: 'longtask', buffered: false }) } catch {}
+			document.addEventListener('aos:in', () => { eventCount++; if (firstEventAt === null) { firstEventAt = performance.now(); requestAnimationFrame(() => { nextFrameAt = performance.now() }) } })
+			const start = performance.now(), max = document.documentElement.scrollHeight - innerHeight
+			let previous = start
+			for (let index = 1; index <= steps; index++) {
+				window.scrollTo(0, max * index / steps)
+				const time = await new Promise(resolve => requestAnimationFrame(resolve))
+				durations.push(time - previous); previous = time
+			}
+			await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+			observer?.disconnect()
+			const ordered = durations.slice().sort((a, b) => a - b)
+			return { scrollMs: performance.now() - start, frameCount: durations.length, frameP95Ms: ordered[Math.ceil(ordered.length * 0.95) - 1] || 0, longTasks, eventCount, animatedCount: document.querySelectorAll('.aos-animate').length, activationMs: firstEventAt === null ? null : firstEventAt - start, firstEventToFrameMs: firstEventAt === null || nextFrameAt === null ? null : nextFrameAt - firstEventAt, markerCount: document.querySelectorAll('[data-aos-observer]').length, nodeCount: document.getElementsByTagName('*').length }
+		}, { steps })
+		const after = new Map((await session.send('Performance.getMetrics')).metrics.map(item => [item.name, item.value]))
+		const cdp = Object.fromEntries(['TaskDuration', 'ScriptDuration', 'LayoutDuration', 'RecalcStyleDuration', 'PaintDuration', 'JSHeapUsedSize', 'Nodes'].map(name => [name, Number(after.get(name) || 0) - Number(before.get(name) || 0)]))
+		const resources = await page.evaluate(() => performance.getEntriesByType('resource').filter(entry => /\/build\/(aos|init)\.js/.test(entry.name)).map(entry => ({ name: entry.name.split('/').pop(), transferSize: entry.transferSize, duration: entry.duration })))
+		await context.close()
+		return { variant: label, count, heterogeneous, viewport: viewport.name, cpu, initReadyMs, refreshMs, ...measured, cdp, resources }
+	}
+	for (const count of counts) for (const heterogeneous of [false, true]) for (const viewport of viewports) for (const cpu of cpus) {
+		await measure('control', count, heterogeneous, viewport, cpu, 'warmup-control')
+		await measure('candidate', count, heterogeneous, viewport, cpu, 'warmup-candidate')
+		for (let sample = 1; sample <= samples; sample++) {
+			const order = sample % 2 ? ['control', 'candidate', 'control-repeat'] : ['candidate', 'control', 'control-repeat']
+			for (const label of order) results.push(await measure(label === 'control-repeat' ? 'control' : label, count, heterogeneous, viewport, cpu, label))
+		}
+	}
+	return { files, samplesPerCase: samples, scrollSteps: steps, nativeIoCostIncludedInCdpTotals: true, note: 'CDP task/script/layout/paint metrics include browser work but do not isolate native IntersectionObserver cost.', results }
+}
+
+async function benchmark(browser, base) {
+	const samples = []
+	const counts = (args.counts || '0,30,100,500,1000').split(',').map(Number)
+	const viewports = args.viewport ? [{ name: args.viewport, width: args.viewport === 'mobile' ? 390 : 1280, height: args.viewport === 'mobile' ? 844 : 800 }] : [{ name: 'desktop', width: 1280, height: 800 }, { name: 'mobile', width: 390, height: 844 }]
+	const cpus = args.cpu ? [Number(args.cpu)] : [1, 4]
+	const repetitions = Number(args.samples || 5)
+	assert(counts.length && counts.every(count => Number.isInteger(count) && count >= 0 && count <= 1000), 'Invalid --counts')
+	assert(viewports.every(viewport => ['desktop', 'mobile'].includes(viewport.name)), 'Invalid --viewport')
+	assert(cpus.every(cpu => [1, 4].includes(cpu)), 'Invalid --cpu')
+	assert(Number.isInteger(repetitions) && repetitions >= 1 && repetitions <= 10, 'Invalid --samples')
+	for (const count of counts) {
+		for (const viewport of viewports) {
+			for (const cpu of cpus) {
+				for (let run = 0; run <= repetitions; run++) {
+					for (const variant of ((run + count + cpu) % 2 ? ['candidate', 'control'] : ['control', 'candidate'])) {
+						const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } })
+						const session = await context.newCDPSession(await context.newPage())
+						await session.send('Emulation.setCPUThrottlingRate', { rate: cpu })
+						const page = context.pages()[0]
+						await page.goto(`${base}/fixture?variant=${variant}&count=${count}`)
+						await page.waitForFunction(() => window.AOS)
+						const metrics = await page.evaluate(async () => {
+							const resources = performance.getEntriesByType('resource').filter(r => /\/build\/(init|aos)\.js/.test(r.name))
+							const start = performance.now(); AOS.refreshHard(); const refreshMs = performance.now() - start
+							const refresh100Start = performance.now(); for (let i = 0; i < 100; i++) AOS.refresh(); const refresh100Ms = performance.now() - refresh100Start
+							const refreshHard100Start = performance.now(); for (let i = 0; i < 100; i++) AOS.refreshHard(); const refreshHard100Ms = performance.now() - refreshHard100Start
+							const scrollListenersAfter100 = window.__listeners.get('scroll')?.size || 0
+							const scrollStart = performance.now(); window.scrollTo(0, document.body.scrollHeight / 2); window.dispatchEvent(new Event('scroll')); await new Promise(resolve => setTimeout(resolve, 130)); const scrollResponseMs = performance.now() - scrollStart
+							const originalQuerySelectorAll = document.querySelectorAll.bind(document)
+							let mutationRefreshCalls = 0
+							document.querySelectorAll = selector => {
+								if (selector === '[data-aos]') mutationRefreshCalls++
+								return originalQuerySelectorAll(selector)
+							}
+							const mutationStart = performance.now()
+							for (let i = 0; i < 100; i++) {
+								const element = document.createElement('div')
+								element.dataset.aos = 'fade-up'
+								document.body.append(element)
+							}
+							await new Promise(resolve => requestAnimationFrame(resolve))
+							const mutationBurstMs = performance.now() - mutationStart
+							return { aosReadyMs: window.__aosReadyMs, assetTransferMs: resources.reduce((sum, resource) => sum + resource.duration, 0), refreshMs, refresh100Ms, refreshHard100Ms, scrollResponseMs, scrollListenersAfter100, mutationRefreshCalls, mutationBurstMs }
+						})
+						if (run > 0) samples.push({ variant, count, viewport: viewport.name, cpu, sample: run, ...metrics })
+						await context.close()
+					}
+				}
+			}
+		}
+	}
+	return samples
+}
+
 ;(async () => {
-	assert(['contract', 'benchmark'].includes(mode), `Unknown mode: ${mode}`)
+	assert(['contract', 'benchmark', 'profile'].includes(mode), `Unknown mode: ${mode}`)
 	for (const name of ['control', 'candidate']) for (const asset of ['aos.js', 'init.js', 'aos.css']) assert(fs.existsSync(path.join(variants[name], 'build', asset)), `Missing ${name} build/${asset}`)
 	fs.mkdirSync(output, { recursive: true })
 	const server = createServer()
@@ -519,10 +643,10 @@ async function contracts(browser, base, variant) {
 		const base = `http://127.0.0.1:${server.address().port}`
 		const results = mode === 'contract'
 			? await Promise.all([contracts(browser, base, 'control'), contracts(browser, base, 'candidate')])
-				: await benchmark(browser, base)
+			: mode === 'profile' ? await profile(browser, base) : await benchmark(browser, base)
 		const file = path.join(output, `${mode}-${args.browser || 'chromium'}.json`)
 		fs.writeFileSync(file, JSON.stringify({ mode, browser: args.browser || 'chromium', results }, null, 2) + '\n')
-		console.log(JSON.stringify({ mode, file, results: mode === 'contract' ? results : `${results.length} samples` }, null, 2))
+		console.log(JSON.stringify({ mode, file, results: mode === 'contract' ? results : `${Array.isArray(results) ? results.length : results.results.length} samples` }, null, 2))
 	} finally {
 		await browser?.close()
 		await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()))
