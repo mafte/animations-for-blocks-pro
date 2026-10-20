@@ -1,6 +1,6 @@
 # Especificación: evaluación y optimización de AOS original
 
-Estado: aprobada por el usuario el 2026-10-20. Planificación en `tasks/plan.md`; tareas en `tasks/todo.md`.
+Estado: completada y probada localmente el 2026-10-20. [Plan archivado](tasks/archive/aos-optimization-2026-10-20/plan.md) y [tareas completadas](tasks/archive/aos-optimization-2026-10-20/todo.md). Resultados y límites en [docs/aos-evaluation.md](docs/aos-evaluation.md). La evaluación de IntersectionObserver es un trabajo posterior con su propio plan.
 
 ## Objetivo y alcance
 

@@ -1,129 +1,118 @@
-# Plan: evaluación y optimización del AOS original
+# Plan: detección de entradas con IntersectionObserver
 
-[Especificación aprobada](../SPEC-aos-optimization.md), 2026-10-20. Rama: `codex/aos-optimization`. Base: master `b59ecb3867c7d1f7bd398bc3d41cfefc52e27a42`.
+Fecha: 2026-10-20. Estado: planificación lista para revisión; implementación pendiente. Rama: `codex/aos-intersection-observer`, creada desde `codex/aos-optimization` en `04b8e2a6e11eb377561170b626d2ad08dd7eb503`.
 
-**Estado:** implementación y aceptación local completadas; lista única: [todo.md](todo.md). Integración probada en Akumbele con autorización del usuario; los límites de matriz/navegadores siguen documentados. Sin merge ni publicación. El trabajo anterior está completo y se conserva íntegro en [archive/safe-deactivation-2026-10-19](archive/safe-deactivation-2026-10-19/plan.md).
+El motor optimizado y el ZIP entregado siguen siendo la referencia funcional. Su [plan anterior](archive/aos-optimization-2026-10-20/plan.md) y sus [tareas completadas](archive/aos-optimization-2026-10-20/todo.md) están archivados; los resultados permanecen en [aos-evaluation.md](../docs/aos-evaluation.md). No hay cambios de implementación en este plan.
 
-## Enfoque y decisiones
+## Objetivo y contrato
 
-Conservar AOS 3.0.0-beta.6 y sus contratos. Primero obtener control, pruebas y perfiles; después corregir listeners y evaluar mejoras aisladas. Una alternativa evaluada y descartada con evidencia es un resultado válido.
+Sustituir el recorrido de todos los elementos por cada evento de scroll por notificaciones de IntersectionObserver (IO). Comparar contra **AOS ya optimizado**, no contra sus defectos originales. Adoptar el cambio cuando conserve las entradas actuales y reduzca trabajo medido sin trasladar un coste mayor a layout, memoria o arranque.
 
-1. **Control independiente:** extraer el commit base e instalar sus dependencias congeladas por separado. No enlazar su node_modules al candidato: los parches del candidato contaminarían el control. Guardar hashes, versiones, muestras y capturas en temporal privada.
-2. **Fuentes con parche reproducible:** usar pnpm patch sobre la versión exacta. Importar `aos/src/js/aos.js` desde `src/init.js`, retirando únicamente el import SCSS interno de AOS mediante parche. Mantener inicialmente las importaciones CSS dist actuales. Evita copiar toda la librería y parchear bundles. Registrar el parche en `patches/aos@3.0.0-beta.6.patch` y su configuración en `pnpm-workspace.yaml`; conservar MIT y procedencia. Sin dependencias/toolchain nuevas.
-3. **Separar procedencia y corrección:** 04 cambia al módulo fuente sin optimizarlo; 05 corrige listeners. Si compilar fuente altera el comportamiento, resolverlo antes de acumular optimizaciones. Comprobar primero que el cacheGroup AOS actual reconoce el fuente; no modificar webpack por anticipado.
-4. **CSS conservador:** evaluar compactar el SCSS original mediante variables de duración/retraso, manteniendo selectores, fases y precedencia global/individual. Aislar variables entre bloques anidados. Evitar nuevos atributos, cambios de PHP/preview y dependencia exclusiva de attr() tipado. Si no compensa o cambia la cascada, conservar CSS original.
-5. **Carga y caché:** conservar handles, filtros, condicionales y defer; vincular la versión de `aos.js` a su contenido. No fusionar bundles ni añadir carga por viewport sin evidencia.
-6. **Modernización condicionada:** estudiar IO, Scroll/View Timelines, WAAPI, RAF/throttle, arranque y propiedades animadas contra el contrato. Una API reciente no demuestra una mejora. Cambios observables o de soporte se presentan aparte.
+Conservar los nueve anclajes, offsets globales/locales, `data-aos-anchor`, `once`, `mirror`, clases, eventos, métodos `init`/`refresh`/`refreshHard` y valores de retorno observados. Mantener los controles, metadatos, HTML guardado, secuencias, formatos de texto, CSS y carga condicional. WordPress 6.6 y PHP 8.1 siguen como mínimos. No hay migración de contenido.
 
-Se verificaron las opciones de pnpm 10.24.0 con su ayuda local y documentación oficial: [patch](https://pnpm.io/10.x/cli/patch), [patch-commit](https://pnpm.io/10.x/cli/patch-commit), [configuración](https://pnpm.io/10.x/settings). No cambiar las dependencias internas de AOS mediante el parche ni permitir ignorar fallos de aplicación.
+El objetivo de soporte solicitado es una ventana aproximada de tres años: navegadores actuales y versiones representativas de finales de 2023 en adelante, incluyendo escritorio y móvil. La tarea 01 fija versiones mínimas concretas con fechas de fuentes oficiales y distingue soporte previsto de ejecución real. No usar funcionalidades recientes de IO como `trackVisibility` o `scrollMargin` para el detector. No cambiar Browserslist ni actualizar dependencias para favorecer la comparación.
 
-## Dependencias y checkpoints
+## Hallazgos que determinan el diseño
+
+- El paquete parcheado conserva `prepare`, `offsetCalculator`, `handleScroll` y la API original. El punto de integración es `initializeScroll()` en `aos/src/js/aos.js`, importado por `src/init.js`. El parche reproducible vive en `patches/aos@3.0.0-beta.6.patch`; no editar `node_modules` como entrega ni bundles a mano.
+- Para el ancla efectiva, AOS obtiene `T` mediante la cadena de offsets sin transformaciones y `h` con `offsetHeight`. El umbral de entrada es `T + a*h - b*H + Oin`, con `a` y `b` en `0`, `0.5`, `1` según el anclaje y `H = innerHeight`. La salida de `mirror` es `T + h - Oout`. No depende de que un porcentaje del área esté visible.
+- Hay una diferencia que hay que conservar: un `data-aos-anchor-placement` explícito sin offset usa `Oin = 0`, mientras que la salida puede seguir usando el offset global. No unificar ambos offsets ni reordenar umbrales cuando entrada y salida se cruzan. La condición de salida de `mirror` tiene prioridad, salvo con `once`.
+- IO observa rectángulos afectados por transformaciones y recortes de ancestros. Observar directamente el bloque animado puede desplazar el disparador, generar oscilaciones o depender de visibilidad horizontal que AOS no comprueba. Una banda estrecha de observación también puede perder saltos completos de scroll. El prototipo debe resolver estos casos antes de la integración.
+- El runner actual comprueba activación de los nueve placements, pero no sus píxeles exactos. Además, `scrollResponseMs` incluye una espera fija de 130 ms y no mide CPU ni FPS. Se amplía el arnés; esas cifras anteriores no prueban el rendimiento de IO.
+- `src/text.js` **ya utiliza IO** para disparar formatos de texto. Este plan cambia las entradas de bloques y comprueba su coordinación con `startWithBlock` y los eventos AOS; no fusiona los dos motores.
+- El código actual emite `aos:in:<id>` también al ocultar un elemento con ID. Caracterizar y conservar esa peculiaridad durante esta migración; corregirla sería un cambio aparte. Igual criterio para otras diferencias del control: registrar y discutir, no cambiar silenciosamente.
+
+## Decisiones de arquitectura
+
+1. **Reutilizar AOS y su estado.** Mantener preparación, clases, eventos y estilos; añadir un controlador IO al fuente parcheado. Aplicar la lógica común solo a los elementos afectados por una notificación, sin recorrer todos los nodos dentro del callback. Los recorridos completos siguen permitidos en init/refresh explícitos.
+2. **Resolver geometría antes que integración.** El prototipo compara márgenes/grupos de observadores sobre referencias estables y, si hace falta, marcadores de umbral independientes del elemento transformado. Elegir una sola estrategia tras medir. No presuponer que `threshold: 0` reproduce las nueve reglas. Si ninguna estrategia pasa, revisar el diseño en checkpoint A.
+3. **Márgenes y recursos acotados.** Calcular márgenes verticales en píxeles; los porcentajes de `rootMargin` se resuelven respecto al ancho de la raíz. Medir cantidad de observadores y objetivos con configuraciones idénticas y heterogéneas. Reutilizar recursos cuando sea posible. Cualquier marcador debe ser privado, no enfocable, no interactivo, sin efecto en accesibilidad, layout, scrollHeight/scrollWidth, selectores estructurales relevantes o HTML persistido, y eliminarse al retirarlo.
+4. **Ciclo de vida único.** Conservar agrupación de mutaciones, reinit sin acumulación y versión de caché correcta. Desconectar recursos y descartar callbacks de generaciones anteriores al refrescar, desactivar o retirar objetivos. Si hay marcadores, ignorar solo sus mutaciones, sin ocultar cambios reales de la misma entrega. No introducir ResizeObserver por elemento sin evidencia; conservar las fuentes de refresh actuales y probar cambios de geometría con ellas.
+5. **Tiempo y opciones externas.** IO entrega avisos de forma asíncrona. Comparar el estado en posiciones de scroll estabilizadas y los eventos de transiciones observadas, separando latencia de geometría. No prometer callbacks en el mismo milisegundo. `throttleDelay` conserva su función de limitar la frecuencia de actualización, aplicado a los elementos pendientes; `debounceDelay` sigue controlando refresh. La tarea 02 valida esta política con valores explícitos. Un cambio de semántica adicional requiere revisión antes de integrarlo.
+6. **Integración gradual y verificable.** Primero convertir `top-bottom` con once/mirror/eventos completos, conservando temporalmente el detector anterior solo para los otros placements. La siguiente tarea incorpora los ocho restantes y elimina esa ruta temporal. Tras checkpoint B no queda un barrido global por scroll ni un segundo motor oculto de respaldo.
+7. **Salida segura.** Sin IO o ante fallo del controlador, liberar el contenido con el respaldo existente; no descargar polyfills ni activar el recorrido antiguo. Mantener `window.AOS` externo y `anfb_aos_handle`: un motor externo conserva su ruta y no recibe un requisito IO añadido por el plugin. Preservar movimiento reducido, arranque antes de la primera transición y contenido visible sin JavaScript.
+8. **Procedencia y build.** Seguir usando pnpm patch con versión exacta, licencia MIT y lockfile. Revisar el chunk `aos`, dependencia de `init`, hashes y CSS compartido. Las fuentes PHP/editor solo cambian si la integración exige una corrección concreta. No ampliar el alcance a WAAPI, scroll timelines, Lenis o un rediseño de CSS.
+
+## Dependencias y orden
+
+La lista de ejecución y los checkpoints se mantienen únicamente en [todo.md](todo.md).
 
 ```text
-01 Control/entorno → 02 Contratos → 03 Baseline medido → revisión A
-04 Fuentes originales → 05 Listener único            → revisión B
-06 Mutaciones → 07 Recorrido de scroll               → revisión C
-08 CSS compacto → 09 Carga/caché                     → revisión D
-10 Alternativas modernas → 11 Aceptación integrada   → revisión E
-12 Informe/build/entrega                             → revisión final
+01 Contratos y control → 02 Prototipo geométrico               → revisión A
+03 Entrada top-bottom → 04 Nueve placements                   → revisión B
+05 Ciclo de vida → 06 Arranque e integración externa          → revisión C
+07 Rendimiento sintético → 08 Matriz de navegadores           → revisión D
+09 WordPress/Gutenberg → 10 Rendimiento en páginas reales     → revisión E
+11 Documentación de mantenimiento → 12 ZIP y revisión final   → entrega
 ```
 
-06–08 deben evaluarse, pero solo conservan un diff de producción si los perfiles de 03 y la compatibilidad lo justifican. Registrar descartes razonados. 10 no implica introducir un segundo motor de producción.
+Las tareas 01 y 02 son el primer filtro de viabilidad. En los checkpoints se presentan resultados y se revisan con el usuario antes del siguiente bloque, según la skill solicitada. No se trata una tarea marcada como hecha como prueba de aprobación humana. Trabajo secuencial: parche, lockfile, compilación y contrato están conectados; no se necesitan agentes paralelos.
 
-CSS y carga podrían investigarse independientemente tras 03. Aplicación de parches, lockfile, builds y mediciones serán secuenciales para aislar efectos. No se requieren agentes ni sesiones paralelas.
+## Aceptación funcional
 
-## Comandos previstos
+- Matriz de nueve placements con offsets ausentes, cero, positivos y negativos de configuración externa; tamaños pequeños, mayores que la ventana y fraccionarios; ancla externa/compartida; carga inicialmente desplazada, restauración de scroll, enlaces hash, ascenso, descenso y saltos que sobrepasan entrada y salida en un frame.
+- Verificar debajo/en/encima del umbral en coordenadas de scroll alcanzables. Tolerancia geométrica máxima propuesta: 1 píxel CSS por redondeo, sin activación anticipada mayor. Registrar `scrollY` real y el valor teórico; no afirmar que se ha probado un límite que el documento no permite alcanzar. No rebajar el criterio tras un fallo sin revisión.
+- Comparar clases, estado, eventos globales/con ID, `detail`, orden y duplicados tras estabilización. Separar casos de scroll pausado y saltos; no inventar eventos intermedios que el control no llegó a observar. `once`/`mirror`, incluidos ambos true por API externa, mantienen la prioridad original.
+- Transformaciones propias y de ancestros, `overflow`, posición horizontal fuera de pantalla, elementos de altura cero u ocultos, fixed/sticky y contenedores desplazables se caracterizan contra el control. No ampliar el soporte de scroll anidado más allá de AOS durante esta sustitución.
+- Cien refresh y cien refreshHard, reinit con distintas opciones, cambios de tamaño/orientación, imágenes tardías, inserción/retirada/reemplazo/anidación, disable y observer desactivado no acumulan recursos ni permiten escrituras desde callbacks antiguos. Los eventos repetidos que ya pertenezcan al contrato de refresh se distinguen de duplicados accidentales.
+- Gutenberg guarda y reabre bloques actuales/heredados y GenerateBlocks; mismos controles, secuencias y textos. Sin reescribir páginas originales. Verificar recursos, filtros, caché y fallback en navegador, además del harness PHP.
 
-Estos comandos son para ejecución posterior a la revisión del plan. No se ha creado todavía el runner de 02/03.
+## Medición y criterio de adopción
 
-### Control (01)
+**Control:** extraer `04b8e2a6e11eb377561170b626d2ad08dd7eb503` en una carpeta privada nueva e instalar dependencias propias con lockfile congelado. No enlazar node_modules con el candidato parcheado. Guardar hashes y versiones reales. Los resultados de la etapa anterior son contexto, no control nuevo.
 
-Desde la raíz del candidato, crear una carpeta nueva y registrar su ruta:
+**Matriz sintética:** 0/30/100/500 elementos y 1000 de estrés; opciones homogéneas y variadas; 1280×800 y 390×844; CPU normal y ×4. Un calentamiento y al menos cinco muestras alternando variantes. Repetir control contra control y medir scroll sostenido normal como caso principal; refrescos repetidos y lotes DOM son escenarios separados.
+
+**Métricas:** scripting atribuible a entradas, coste total de scripting/layout/paint, latencia hasta cambio de clase y hasta primer frame de transición, duración/p95 de frames y long tasks, init, refresh, lotes DOM, recursos activos, nodos auxiliares, memoria retenida cuando el navegador permita medirla y bytes raw/gzip. El coste nativo de IO no se deduce del tiempo del callback: se inspecciona también en el renderizado total. Herramientas y limitaciones se registran.
+
+**Meta propuesta:** al menos 20% menos scripting mediano de entradas durante scroll sostenido con 500 elementos, por encima del ruido control/control; 1000 elementos debe confirmar la tendencia. Investigar y resolver regresiones reproducibles mayores del 10% y 1 ms en init/refresh, p95 de frames o scripting de casos 30/100. Diferencias inferiores se informan con valores absolutos, sin atribuirlas automáticamente a una mejora. Memoria, layout y coste de marcadores/observadores forman parte de la decisión, aunque baje JavaScript. Si la meta no se cumple o el coste total empeora fuera del ruido, no adoptar por el solo hecho de usar una API moderna.
+
+**Páginas reales:** comparar la misma copia local de una página representativa de Akumbele con ambos builds, activos y configuración idénticos. Usar carga fría/caliente y el mismo recorrido de scroll, sin agregar animaciones artificiales para inflar la ventaja. Mostrar la diferencia entre mejora del motor, carga de página y fluidez; no convertir una reducción de scripting en una afirmación de FPS no medidos.
+
+**Compatibilidad demostrada:** ejecutar contratos en Chromium, Firefox y WebKit disponibles, más Safari real cuando exista. WebKit de Playwright no certifica Safari ni una versión histórica. Probar los límites de 2023 con entornos seguros disponibles; si faltan, dejar esa parte de la ventana pendiente y no afirmar compatibilidad completa. Mantener verificaciones en WordPress 6.6/PHP 8.1 y entorno local actual con GenerateBlocks compatible en cada uno.
+
+## Comandos y entorno previstos
+
+Se ejecutarán durante implementación, después de revisar el plan. La tarea 01 registra rutas reales y crea el control con `git archive` del commit indicado. Las dependencias se instalan mediante `corepack pnpm install --frozen-lockfile` en cada variante.
+
+Runner existente, que se amplía sin sustituir sus regresiones:
 
 ```sh
-export ANFB_AOS_AUDIT="$(mktemp -d /private/tmp/anfb-aos-optimization.XXXXXX)"
-mkdir -p "$ANFB_AOS_AUDIT/control" "$ANFB_AOS_AUDIT/results"
-git archive b59ecb3867c7d1f7bd398bc3d41cfefc52e27a42 | tar -x -C "$ANFB_AOS_AUDIT/control"
-corepack pnpm --dir "$ANFB_AOS_AUDIT/control" install --frozen-lockfile
-npm --prefix "$ANFB_AOS_AUDIT/control" run build
-npm --prefix "$ANFB_AOS_AUDIT/control" test
+node tests/aos-browser.cjs --mode contract --control "$ANFB_IO_CONTROL" --candidate "$PWD" --output "$ANFB_IO_RESULTS/contracts"
+node tests/aos-browser.cjs --mode contract --browser firefox --control "$ANFB_IO_CONTROL" --candidate "$PWD" --output "$ANFB_IO_RESULTS/contracts"
+node tests/aos-browser.cjs --mode contract --browser webkit --control "$ANFB_IO_CONTROL" --candidate "$PWD" --output "$ANFB_IO_RESULTS/contracts"
 ```
 
-Guardar hashes antes/después del build, versiones de Node/pnpm/navegador/hardware y límites. Identificar sitios desechables y comprobar `ANFB_TEST_SITE` efectivo antes de fixtures. No basta una variable de entorno. Si cambia el entorno, repetir ambas variantes.
+La tarea 07 añadirá un modo `profile` al runner para el scroll sostenido; **todavía no existe**. El modo `benchmark` actual se conserva como regresión y no se usa como sustituto de perfiles CPU. El prototipo de 02 será una fixture de prueba, no una nueva opción pública.
 
-### Contratos y benchmark (02/03)
+Por incremento de motor: regresión pertinente, contratos reales, `npm test`, `npm run build` y revisión de build/patch/lock. Para cambios PHP: `php -l` de archivos afectados y escenarios `tests/aos-assets.php`. Integración completa: comandos y limpieza de [docs/testing.md](../docs/testing.md), incluyendo `tests/content.php`, `tests/cli.py`, `tests/fixture.php` y `npm run test:browser`.
 
-Un runner con Playwright instalado y HTTP local sirve los bundles reales de ambas carpetas. Reutilizar CHROME_PATH del proyecto:
+Las fixtures que crean contenido se ejecutan en un sitio desechable/clon local con `ANFB_TEST_SITE` efectivo. Puede prepararse un clon de Akumbele, aprovechando la autorización local existente. En la comparación real usar copias privadas y restaurar activación/ajustes/instalación; conservar hashes de páginas originales y backups privados. No tocar producción ni enviar formularios. No modificar `skills/`.
 
-```sh
-node tests/aos-browser.cjs --mode contract --control "$ANFB_AOS_AUDIT/control" --candidate "$PWD" --output "$ANFB_AOS_AUDIT/results/contracts"
-node tests/aos-browser.cjs --mode benchmark --control "$ANFB_AOS_AUDIT/control" --candidate "$PWD" --output "$ANFB_AOS_AUDIT/results/benchmark"
-```
+## Riesgos y salidas
 
-`--browser firefox` y `--browser webkit` permiten contratos adicionales si sus binarios existen. Chromium por omisión; Safari real se identifica aparte. Fotogramas y estilos computados pertenecen al modo contract.
+| Riesgo | Impacto | Mitigación |
+| --- | --- | --- |
+| Transform, recorte o ancho alteran el umbral | Alto | Prototipo con referencias estables; pruebas a ambos lados del límite. |
+| Saltos no cruzan una banda observada | Alto | Exigir estado final correcto incluso al saltar sobre todos los límites; no aceptar bandas que solo funcionan con scroll lento. |
+| Muchos observadores/marcadores cuestan más que AOS | Alto | Matrices heterogéneas, coste total y memoria; descartar o rediseñar en A/D. |
+| Marcadores afectan DOM, altura o MutationObserver | Alto | Sin efecto estructural observable, sin persistencia, ignorado estrecho y limpieza probada. |
+| Callback antiguo o reinit cambia once/mirror | Alto | Generaciones, desconexión y regresiones de lifecycle; misma lógica de estado. |
+| IO cambia cadencia o retorno de API | Medio | Caracterizar valores y eventos; conservar limitación de frecuencia y separar latencia de posición. |
+| Falta IO/falla el arranque | Alto | Contenido visible, respaldo existente y caso de motor externo independiente. |
+| No hay navegador histórico/entorno mínimo | Medio | Registrar cobertura parcial; no cerrar aceptación completa por inferencia. |
+| Mejora sintética no aparece en Akumbele | Medio | Informar ambas mediciones y mantener el control optimizado como alternativa válida. |
 
-Benchmark base: 0/30/100/500 elementos, 1000 de estrés; 1280×800/390×844; CPU normal/×4; calentamiento y cinco muestras por caso/variante alternando orden. Medir ready de AOS, duración de descarga JS, refresh y respuesta a scroll; tamaños raw/gzip del bundle. Conservar muestras, mediana/p95 y definiciones. Primero control contra control para cuantificar ruido. Medición de mutaciones concentrada en tarea 06; waterfall/HTTP real, reposo y perfiles de scripting/layout/paint requieren instrumentación focalizada y se completan cuando exista sitio desechable.
+## Entrega y revisión
 
-Las aserciones del candidato son criterios absolutos y comparaciones justificadas. Enumerar defectos conocidos del control: no considerarlos aceptación ni usar una condición genérica que tolere cualquier fallo. Un JSON informativo no certifica compatibilidad.
+El resultado incluye controlador adoptado o rechazo documentado, pruebas significativas, fuentes/parche/lock y build coherentes, informe con versiones/muestras y ZIP identificable por commit. Cada incremento verificable tiene su commit; no hay merge ni publicación automática. La rama y el ZIP optimizados existentes permiten volver al control sin migración de datos.
 
-### Parche de fuentes (04 y siguientes)
+Decisiones que debe resolver la evidencia en A: geometría observada, recursos por configuración y cadencia compatible. En D/E: coste total y cobertura suficiente para recomendar la adopción. Si hace falta relajar anclajes, eventos o umbrales, presentar la diferencia concreta al usuario antes de cambiar el contrato.
 
-```sh
-corepack pnpm patch aos@3.0.0-beta.6 --edit-dir "$ANFB_AOS_AUDIT/aos-edit"
-```
+## Fuentes consultadas el 2026-10-20
 
-Editar solo los fuentes de esa copia temporal y conservar MIT. Después:
-
-```sh
-corepack pnpm patch-commit "$ANFB_AOS_AUDIT/aos-edit" --patches-dir patches
-corepack pnpm install --frozen-lockfile
-npm run build
-npm test
-```
-
-Para otra edición usar una carpeta nueva, conservando el parche existente; no usar ignore-existing. Revisar diff acumulado y hash del lockfile. Verificar también instalación congelada limpia. El original de control conserva su propia instalación sin parches.
-
-### WordPress (09/11)
-
-Usar comandos de integración de la spec con rutas/URL/ID reales registrados por 01. Requiere sitios desechables con `ANFB_TEST_SITE` efectivo y GenerateBlocks compatible. Ejecutar tests/content.php, nuevo tests/aos-assets.php, CLI, tests/fixture.php y npm run test:browser. En tests/aos-assets.php usar procesos separados para escenarios afectados por variables estáticas PHP. Restaurar opciones y eliminar fixtures/copias tras medir.
-
-### Cierre local
-
-```sh
-npm test
-npm run build
-php -l animations-for-blocks.php
-php -l tests/aos-assets.php
-git diff --check
-```
-
-Añadir php -l por cualquier otro PHP modificado. No hay script lint propio. No actualizar dependencias/Browserslist para alterar el baseline; comparar diagnósticos TypeScript heredados si se usa esa comprobación.
-
-## Riesgos y mitigación
-
-| Riesgo | Mitigación / salida |
-| --- | --- |
-| Control contaminado por el candidato | Instalación independiente, manifest y hashes. |
-| Fuente cambia bundle o duplica CSS | Introducción separada en 04, contratos reales y análisis de chunks; CSS dist hasta 08. |
-| Reinit acumula eventos o cambia throttle/startEvent | Listener/observador únicos, cancelar trabajo pendiente y cubrir load/resize/reinit. |
-| Agrupación DOM pierde o retrasa elementos | Añadidos/retirados/reemplazos/nodos anidados; mantener alcance del observador original. |
-| Variables heredan tiempos de padres | Probar global/local/anidado/ausencia/cero/motor externo; descartar si difiere. |
-| Ahorro CSS con más coste de init/HTML/editor | Medir coste total y gzip, sin mover el objetivo después del resultado. |
-| Arranque oculta contenido o elimina transición | Fotogramas y fallo/reducido/sin JS con plazo de liberación. |
-| IO/rectángulos cambian umbral | Layout sin transform y latencia aparte; no adoptar semántica distinta. |
-| Matriz mínima no disponible | Descubrir/provisionar desechables cuando sea posible; registrar ausencias sin afirmar cobertura completa. |
-
-Metas aprobadas: listener único; objetivo experimental de 25% menos CSS AOS gzip o 20% menos scripting mediano AOS en 500 elementos/refrescos. Informar ambos y sus costes. Investigar regresiones reproducibles superiores al 10%, con tiempos absolutos/dispersión. No convertir una corrección en una afirmación de FPS no medidos.
-
-## Revisión, Definition of Done y reversión
-
-- Checkpoints cada 2–3 tareas: pruebas/build pertinentes, resultados y revisión humana de decisiones antes del siguiente bloque. Un fallo se corrige o descarta antes de avanzar.
-- Por corrección: regresión que falla sin ella, ejecución real pertinente, pruebas existentes, build generado y diff revisado. Por estudio: evidencia o rechazo razonado; no inventar implementación para cerrar la tarea.
-- Aplicar Definition of Done del entorno: corrección, calidad, integración, documentación y reversión. Sin telemetría de producción para un estudio local.
-- Tareas de aproximadamente cinco archivos fuente/config/prueba como máximo; build generado y actualización mecánica de hashes del lockfile se revisan aparte. Subdividir antes de ampliar lógica.
-- Commit por incremento. Revertir solo el incremento propio que falle tras revisar el árbol; no resetear trabajo ajeno. `skills/` y AOSIO quedan fuera del diff.
-- Entrega con informe, muestras, decisiones, límites y procedencia MIT. Sin merge/publicación/despliegue automático.
-
-## Preguntas pendientes
-
-01–03 establecen el entorno y la línea base sintética. El usuario aprobó continuar; checkpoint A se considera satisfecho para correcciones de bajo riesgo como listeners. Métricas que requieren un sitio desechable, navegadores adicionales o traza de CPU siguen pendientes y se completan antes de las decisiones pertinentes en 06/09/11.
+- [MDN: Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API): entrega asíncrona, área de intersección y recorte. La API básica está ampliamente disponible; eso no demuestra equivalencia con AOS.
+- [MDN: rootMargin](https://developer.mozilla.org/en-US/docs/Web/API/IntersectionObserver/rootMargin), [thresholds](https://developer.mozilla.org/en-US/docs/Web/API/IntersectionObserver/thresholds) y [disconnect](https://developer.mozilla.org/en-US/docs/Web/API/IntersectionObserver/disconnect): configuración y liberación.
+- [Especificación Intersection Observer](https://w3c.github.io/IntersectionObserver/): cálculo geométrico y porcentajes de margen relativos al ancho. El algoritmo de compatibilidad propuesto es una hipótesis a verificar, no una garantía de la especificación.
+- [Política de navegadores de WordPress](https://make.wordpress.org/core/handbook/best-practices/browser-support/): contexto del build de editor. La ventana de tres años para frontend procede del usuario y debe concretarse por versión.
+- Fuente AOS instalada y parcheada: `aos/src/js/aos.js`, `helpers/offsetCalculator.js`, `helpers/prepare.js`, `helpers/handleScroll.js`, `libs/offset.js`; procedencia y licencia conservadas en la [evaluación anterior](../docs/aos-evaluation.md).
