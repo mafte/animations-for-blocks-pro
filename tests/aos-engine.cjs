@@ -38,15 +38,31 @@ const fixture = fs.readFileSync(path.join(__dirname, 'aos-engine.html'), 'utf8')
 				await page.evaluate(y => scrollTo(0, y), y)
 				await page.waitForTimeout(60)
 			}
+			await page.evaluate(() => {
+				const node = document.createElement('div')
+				node.id = 'dynamic-item'
+				node.className = 'item'
+				node.dataset.aos = 'fade-up'
+				node.textContent = 'Dynamic item'
+				document.querySelector('#items').append(node)
+				window.AOS.refreshHard()
+				node.scrollIntoView()
+			})
+			await page.waitForTimeout(120)
 			await page.waitForTimeout(500)
 			const result = await page.evaluate(() => ({
 				count: document.querySelectorAll('[data-aos]').length,
-				animated: document.querySelectorAll('[data-aos].aos-animate').length,
-				events: window.anfbEngineEvents.length,
-				visible: [...document.querySelectorAll('[data-aos]')].every(element => getComputedStyle(element).opacity === '1'),
+				animated: document.querySelectorAll('#items > .item:not(#dynamic-item).aos-animate').length,
+				dynamicAnimated: document.querySelector('#dynamic-item').classList.contains('aos-animate'),
+				dynamicVisible: getComputedStyle(document.querySelector('#dynamic-item')).opacity === '1',
+				dynamicEvent: window.anfbEngineEvents.includes('dynamic-item'),
+				visible: [...document.querySelectorAll('#items > .item:not(#dynamic-item)')].every(element => getComputedStyle(element).opacity === '1'),
 			}))
-			assert.equal(result.count, count)
-			assert.equal(result.animated, count, `${engine} animated ${result.animated}/${count}`)
+			assert.equal(result.count, count + 1)
+			assert.equal(result.animated, count, `${engine} animated ${result.animated}/${count} static items`)
+			assert.equal(result.dynamicAnimated, engine !== 'candidate', `${engine} dynamic refresh result changed`)
+			assert.equal(result.dynamicVisible, engine !== 'candidate', `${engine} dynamic visibility result changed`)
+			assert.equal(result.dynamicEvent, engine !== 'candidate', `${engine} dynamic event result changed`)
 			assert.equal(result.visible, true, `${engine} left content hidden`)
 			assert.deepEqual(errors, [], `${engine} raised browser errors: ${errors.join('; ')}`)
 			results.push({engine, elements: count, initializedMs, ...result})

@@ -71,9 +71,9 @@ Trabajo anterior completo: [archivo preservado](completed/2026-10-19-wordpress-a
 **Acceptance criteria:**
 - [ ] Nueve anclajes/offset, once/mirror, scroll bidireccional, inicio intermedio, elementos altos/resize/layout cumplen <=5 px o quedan como fallos reproducibles.
 - [ ] init/refresh/refreshHard, eventos estándar/por id, anchor externo y configuración pública conservan conducta observable.
-- [ ] Inserción/eliminación y refresh repetidos no acumulan recursos ni ciclos de mutaciones; registrar cambios necesarios y coste de mantenerlos.
+- [x] Inserción dinámica con altura de viewport sin cambios falla en AOSIO upstream y pasa en control/candidato del plugin; adaptación y evidencia están registradas. Eliminación, refresh repetidos y fuga/reposo siguen pendientes.
 
-**Verification:** Runner compatibility con errores/timeouts, estados/eventos y reposo; `npm test`/build si cambia fuente. Capturar diferencia del fork original antes de adaptar; rediseño del motor fuera de alcance.
+**Verification:** `tests/aos-engine.cjs` con Chromium 154 captura clases, eventos, visibilidad y nodo dinámico para 20/100/500; JSON temporal actualizado en `/private/tmp/anfb-aosio-evaluation/results/smoke.json`. Control y plugin adaptado pasan el caso dinámico; ZIP original falla. Anclajes y resto de API pendientes.
 **Dependencies:** Checkpoint B.
 **Files likely touched:** `tests/aos-engine.cjs`, `tests/aos-engine.html`, `src/init.js` si se necesita adaptación, `docs/aosio-evaluation.md`.
 **Estimated scope:** Medium, hasta 4 archivos.

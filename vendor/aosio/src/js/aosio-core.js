@@ -132,6 +132,7 @@ const refreshHard = function () {
     return disable();
   }
 
+  if (initialized) lastWindowHeight = null;
   refresh();
 };
 
