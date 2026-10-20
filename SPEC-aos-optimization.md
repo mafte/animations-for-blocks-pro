@@ -1,6 +1,6 @@
 # Especificación: evaluación y optimización de AOS original
 
-Estado: propuesta pendiente de aprobación. Fecha: 2026-10-20.
+Estado: aprobada por el usuario el 2026-10-20. Planificación en `tasks/plan.md`; tareas en `tasks/todo.md`.
 
 ## Objetivo y alcance
 
@@ -196,4 +196,4 @@ Si no se alcanza una meta cuantitativa, entregar el resultado y limitar la recom
 
 No hay una decisión funcional imprescindible pendiente: se propone mantener el contrato actual y evaluar todas las oportunidades anteriores. El mecanismo mínimo para mantener una corrección de AOS y la disponibilidad de navegadores/sitios se concretarán con evidencia en el plan.
 
-Requiere aprobación humana de alcance y criterios antes de crear `tasks/plan.md`/`tasks/todo.md` nuevos. Esa planificación será una fase posterior; no se ha iniciado implementación.
+El usuario aprobó alcance y criterios el 2026-10-20 y solicitó continuar con la planificación. El plan requiere revisión antes de implementar; todavía no se ha iniciado implementación.
